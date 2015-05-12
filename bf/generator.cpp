@@ -1,12 +1,13 @@
-#include "bfg.h"
+#include "generator.h"
+
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
 
-namespace bfg {
+namespace bf {
 
-    std::shared_ptr<var> brainfuck::new_var(std::string var_name, unsigned init_value, unsigned pref_stack_pos) {
+    std::shared_ptr<var> generator::new_var(std::string var_name, unsigned init_value, unsigned pref_stack_pos) {
         if (var_name.compare("") != 0 && m_var_to_pos.find(var_name) != m_var_to_pos.end())
             throw std::logic_error("A variable named " + var_name + " already exists!");
 
@@ -26,15 +27,15 @@ namespace bfg {
         return v;
     }
 
-    void brainfuck::while_begin(const var& v) {
+    void generator::while_begin(const var& v) {
         m_out.emplace_back(move_sp_to(v), "[", "While " + v.m_name + " is not 0", m_indention++);
     }
 
-    void brainfuck::while_end(const var& v) {
+    void generator::while_end(const var& v) {
         m_out.emplace_back(move_sp_to(v), "]", "End while " + v.m_name, --m_indention);
     }
 
-    void brainfuck::if_begin(const var& v) {
+    void generator::if_begin(const var& v) {
         m_out.emplace_back("", "If " + v.m_name + " is not 0 / backing up variable", "", m_indention);
         // Backup value of v, use autonaming to provide nesting branches
         auto backup = new_var();
@@ -43,7 +44,7 @@ namespace bfg {
         m_out.emplace_back(move_sp_to(v), "[", "If " + v.m_name + " is not 0", m_indention++);
     }
 
-    void brainfuck::if_end(const var& v) {
+    void generator::if_end(const var& v) {
         // Clear v to ensure leaving the loop
         var& v_ref = const_cast<var&>(v);
         v_ref.set(0);
@@ -53,7 +54,7 @@ namespace bfg {
         m_if_var_backup.erase(&v);
     }
 
-    void brainfuck::print(const std::string& text) {
+    void generator::print(const std::string& text) {
         m_out.emplace_back("", "Print out some constant text", "",  m_indention);
         auto temp = new_var("_temp_print");
         for (unsigned char c : text) {
@@ -62,7 +63,7 @@ namespace bfg {
         }
     }
 
-    std::ostream& operator<<(std::ostream& o, const brainfuck& bf) {
+    std::ostream& operator<<(std::ostream& o, const generator& bf) {
         const unsigned indention_factor = 4;
 
         std::vector<unsigned> col_sizes(3, 0);
@@ -84,7 +85,7 @@ namespace bfg {
         return o;
     }
 
-    std::string brainfuck::minimal_code() const {
+    std::string generator::minimal_code() const {
         std::stringstream ss;
         ss << *this;
         auto full_code = ss.str();
@@ -108,7 +109,7 @@ namespace bfg {
         return minimal_code;
     }
 
-    std::string brainfuck::move_sp_to(const var& v) {
+    std::string generator::move_sp_to(const var& v) {
         const auto var_pos = m_var_to_pos.at(v.m_name);
         int dist = (int) m_var_to_pos.at(v.m_name) - (int) m_stackpos;
         m_stackpos = var_pos;
@@ -119,142 +120,142 @@ namespace bfg {
             return std::string(-dist, '<');
     }
 
-    var::var(brainfuck& bf, const std::string& var_name, unsigned stack_pos)
-        : m_bf(bf), m_name(var_name), m_pos(stack_pos) {}
+    var::var(generator& bf, const std::string& var_name, unsigned stack_pos)
+        : m_gen(bf), m_name(var_name), m_pos(stack_pos) {}
 
     var::~var() {
-        m_bf.m_var_to_pos.erase(m_name);
-        m_bf.m_pos_to_var.erase(m_pos);
+        m_gen.m_var_to_pos.erase(m_name);
+        m_gen.m_pos_to_var.erase(m_pos);
     }
 
     void var::inc() {
-        m_bf.m_out.emplace_back(m_bf.move_sp_to(*this),
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
             "+", // operation
             "Increment " + m_name, // comment
-            m_bf.m_indention);
+            m_gen.m_indention);
     }
 
     void var::dec() {
-        m_bf.m_out.emplace_back(m_bf.move_sp_to(*this),
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
             "-", // operation
             "Decrement " + m_name, // comment
-            m_bf.m_indention);
+            m_gen.m_indention);
     }
 
     void var::set(unsigned value) {
-        m_bf.m_out.emplace_back(m_bf.move_sp_to(*this),
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
             "[-]" + std::string(value, '+'), // operation
             "Set " + m_name + " to " + std::to_string(value), // comment
-            m_bf.m_indention);
+            m_gen.m_indention);
     }
 
     void var::add(unsigned value) {
-        m_bf.m_out.emplace_back(m_bf.move_sp_to(*this),
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
             std::string(value, '+'), // operation
             "Add " + std::to_string(value) + " to " + m_name, // comment
-            m_bf.m_indention);
+            m_gen.m_indention);
     }
 
     void var::sub(unsigned value) {
-        m_bf.m_out.emplace_back(m_bf.move_sp_to(*this),
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
             std::string(value, '-'), // operation
             "Subtract " + std::to_string(value) + " from " + m_name, // comment
-            m_bf.m_indention);
+            m_gen.m_indention);
     }
 
     void var::mult(unsigned value) {
-        m_bf.m_out.emplace_back("", "Multiply " + m_name + " by " + std::to_string(value), "", m_bf.m_indention);
-        auto temp = m_bf.new_var("_temp_mult");
+        m_gen.m_out.emplace_back("", "Multiply " + m_name + " by " + std::to_string(value), "", m_gen.m_indention);
+        auto temp = m_gen.new_var("_temp_mult");
         this->copy_to(*temp);
         this->set(0);
-        m_bf.while_begin(*temp);
+        m_gen.while_begin(*temp);
         this->add(value);
         temp->dec();
-        m_bf.while_end(*temp);
+        m_gen.while_end(*temp);
     }
 
     void var::input() {
-        m_bf.m_out.emplace_back(m_bf.move_sp_to(*this),
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
             ",", // operation
             "Read input to " + m_name, // comment
-            m_bf.m_indention);
+            m_gen.m_indention);
     }
 
     void var::output() const {
-        m_bf.m_out.emplace_back(m_bf.move_sp_to(*this),
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
             ".", // operation
             "Write output from " + m_name, // comment
-            m_bf.m_indention);
+            m_gen.m_indention);
     }
 
     void var::negate(const var& v) {
-        m_bf.m_out.emplace_back("", "Set " + m_name + " to not " + v.m_name, "", m_bf.m_indention);
+        m_gen.m_out.emplace_back("", "Set " + m_name + " to not " + v.m_name, "", m_gen.m_indention);
         this->set(1);
-        m_bf.if_begin(v);
+        m_gen.if_begin(v);
         this->set(0);
-        m_bf.if_end(v);
+        m_gen.if_end(v);
     }
 
     void var::move_to(var& v) {
-        m_bf.m_out.emplace_back("", "Move " + m_name + " to " + v.m_name, "", m_bf.m_indention);
+        m_gen.m_out.emplace_back("", "Move " + m_name + " to " + v.m_name, "", m_gen.m_indention);
         v.set(0);
-        m_bf.while_begin(*this);
+        m_gen.while_begin(*this);
         this->dec();
         v.inc();
-        m_bf.while_end(*this);
+        m_gen.while_end(*this);
     }
 
     void var::move_to_both(var& v1, var& v2) {
-        m_bf.m_out.emplace_back("", "Move " + m_name + " to " + v1.m_name + " and to " + v2.m_name, "", m_bf.m_indention);
+        m_gen.m_out.emplace_back("", "Move " + m_name + " to " + v1.m_name + " and to " + v2.m_name, "", m_gen.m_indention);
         v1.set(0);
         v2.set(0);
-        m_bf.while_begin(*this);
+        m_gen.while_begin(*this);
         this->dec();
         v1.inc();
         v2.inc();
-        m_bf.while_end(*this);
+        m_gen.while_end(*this);
     }
 
     void var::copy_to(var& v) const {
         auto t_ptr = const_cast<var*>(this);
-        m_bf.m_out.emplace_back("", "Copy " + m_name + " to " + v.m_name, "", m_bf.m_indention);
-        auto temp = m_bf.new_var("_temp_copy_to");
+        m_gen.m_out.emplace_back("", "Copy " + m_name + " to " + v.m_name, "", m_gen.m_indention);
+        auto temp = m_gen.new_var("_temp_copy_to");
         t_ptr->move_to_both(v, *temp);
         temp->move_to(*t_ptr);
     }
 
     void var::add_to(var& v) const {
         auto t_ptr = const_cast<var*>(this);
-        m_bf.m_out.emplace_back("", "Add " + m_name + " to " + v.m_name, "", m_bf.m_indention);
-        auto temp = m_bf.new_var("_temp_add_to");
+        m_gen.m_out.emplace_back("", "Add " + m_name + " to " + v.m_name, "", m_gen.m_indention);
+        auto temp = m_gen.new_var("_temp_add_to");
         // move_to_both without clear targets
-        m_bf.while_begin(*this);
+        m_gen.while_begin(*this);
         t_ptr->dec();
         v.inc();
         temp->inc();
-        m_bf.while_end(*this);
+        m_gen.while_end(*this);
         // restore *this
         temp->move_to(*t_ptr);
     }
 
     void var::lower_than(const var& v) {
-        m_bf.m_out.emplace_back("", "Compare: " + m_name + " lower than " + v.m_name, "", m_bf.m_indention);
+        m_gen.m_out.emplace_back("", "Compare: " + m_name + " lower than " + v.m_name, "", m_gen.m_indention);
 
         // Similar to http://stackoverflow.com/a/13327857
         // array = {1 (result), 1, 0, a, b, 0}
         //    pos: [0]         [1][2][3][4][5]
-        auto array = m_bf.new_var_array<6>("_temp_lt");
+        auto array = m_gen.new_var_array<6>("_temp_lt");
         array[0]->set(1);
         array[1]->set(1);
         this->copy_to(*array[3]); // this -> a
         v.copy_to(*array[4]); // v -> b
 
-        m_bf.m_out.emplace_back(m_bf.move_sp_to(*array[3]),
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[3]),
             "+>+<" // This is for managing if a = 0 and b = 0.
             "[->-[>]<<]" // If a is the one which reaches 0 first (a < b), then pointer will be at [3]. Else it will be at [2].
             "<[<->->]>", // If "else" (a >= b), set result at [0] to 0 and correct stack pointer position to [3] at the end.
             "Compare operation sequence for lower than", // comment
-            m_bf.m_indention);
+            m_gen.m_indention);
 
         // Move result to this
         this->set(0);
@@ -263,14 +264,14 @@ namespace bfg {
 
     void var::lower_equal(const var& v) {
         // (this <= v) == (this < v + 1)
-        auto v_1 = m_bf.new_var("_" + v.m_name + "_plus_1");
+        auto v_1 = m_gen.new_var("_" + v.m_name + "_plus_1");
         v.copy_to(*v_1);
         v_1->inc();
         this->lower_than(*v_1);
     }
 
     void var::greater_than(const var& v) {
-        auto v_copy = m_bf.new_var("_" + v.m_name + "_copy");
+        auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
         v.copy_to(*v_copy);
         // (this > v) == (v < this)
         v_copy->lower_than(*this);
@@ -279,7 +280,7 @@ namespace bfg {
     }
 
     void var::greater_equal(const var& v) {
-        auto v_copy = m_bf.new_var("_" + v.m_name + "_copy");
+        auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
         v.copy_to(*v_copy);
         // (this >= v) == (v <= this)
         v_copy->lower_equal(*this);

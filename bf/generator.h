@@ -8,11 +8,11 @@
 #include <tuple>
 #include <vector>
 
-namespace bfg {
+namespace bf {
 
     class var;
 
-    class brainfuck {
+    class generator {
         friend class var;
         typedef std::shared_ptr<var> var_ptr;
 
@@ -41,9 +41,9 @@ namespace bfg {
         void if_begin(const var&);
         void if_end(const var&);
 
-        void print(const std::string& text);
+        void print(const std::string &text);
 
-        friend std::ostream& operator<<(std::ostream& o, const brainfuck& bf);
+        friend std::ostream& operator<<(std::ostream&, const generator&);
         std::string minimal_code() const;
 
     private:
@@ -59,9 +59,9 @@ namespace bfg {
     };
 
     class var {
-        friend class brainfuck;
+        friend class generator;
 
-        var(brainfuck& bf, const std::string& var_name, unsigned stack_pos);
+        var(generator&, const std::string& var_name, unsigned stack_pos);
         var(const var&) = delete;
 
     public:
@@ -90,7 +90,7 @@ namespace bfg {
         void greater_equal(const var&);
 
     private:
-        brainfuck& m_bf;
+        generator& m_gen;
         const std::string m_name;
         const unsigned m_pos;
     };

@@ -1,137 +1,112 @@
-#include "bfg.h"
+#include "bf/generator.h"
 #include <fstream>
 
-int main(int argc, char** argv) {
-    bfg::brainfuck bf;
+int main(int argc, char **argv) {
+    bf::generator bfg;
+
+    // Helper function to read ascii int from the input
+    auto read_int = [&bfg](bf::var &var) {
+        auto input = bfg.new_var("input");
+        auto ascii_zero = bfg.new_var("ascii_zero", '0');
+        input->input();
+        bfg.while_begin(*input);
+        {
+            auto cmp_res = bfg.new_var("cmp_res");
+            input->copy_to(*cmp_res);
+            cmp_res->greater_equal(*ascii_zero);
+            bfg.if_begin(*cmp_res);
+            {
+                // Add input to variable
+                var.mult(10);
+                input->sub('0'); // ascii to int
+                input->add_to(var);
+                // Read next char
+                input->input();
+            }
+            bfg.if_end(*cmp_res);
+
+            auto not_res = bfg.new_var("not_res");
+            not_res->negate(*cmp_res);
+            bfg.if_begin(*not_res);
+            {
+                // End input cols
+                input->set(0);
+            }
+            bfg.if_end(*not_res);
+        }
+        bfg.while_end(*input);
+    };
 
     // Read input
-    auto cols = bf.new_var("cols");
-    auto rows = bf.new_var("rows");
-    {
-        auto in = bf.new_var("in");
-        auto zero = bf.new_var("zero", '0');
-        // Read cols
-        bf.print("Cols? ");
-        in->input();
-        bf.while_begin(*in);
-        {
-            auto res = bf.new_var("res");
-            in->copy_to(*res);
-            res->greater_equal(*zero);
-            bf.if_begin(*res);
-            {
-                // Add input to cols
-                cols->mult(10);
-                in->sub('0'); // ascii to int
-                in->add_to(*cols);
-                // Read next char
-                in->input();
-            }
-            bf.if_end(*res);
+    auto cols = bfg.new_var("cols");
+    auto rows = bfg.new_var("rows");
+    bfg.print("Cols? ");
+    read_int(*cols);
+    bfg.print("Rows? ");
+    read_int(*rows);
 
-            auto not_res = bf.new_var("not_res");
-            not_res->negate(*res);
-            bf.if_begin(*not_res);
-            {
-                // End input cols
-                in->set(0);
-            }
-            bf.if_end(*not_res);
-        }
-        bf.while_end(*in);
-
-        // Read rows
-        bf.print("Rows? ");
-        in->input();
-        bf.while_begin(*in);
-        {
-            auto res = bf.new_var("res");
-            in->copy_to(*res);
-            res->greater_equal(*zero);
-            bf.if_begin(*res);
-            {
-                // Add input to rows
-                rows->mult(10);
-                in->sub('0'); // ascii to int
-                in->add_to(*rows);
-                // Read next char
-                in->input();
-            }
-            bf.if_end(*res);
-
-            auto not_res = bf.new_var("not_res");
-            not_res->negate(*res);
-            bf.if_begin(*not_res);
-            {
-                // End input cols
-                in->set(0);
-            }
-            bf.if_end(*not_res);
-        }
-        bf.while_end(*in);
-    }
-    bf.print("\n");
+    bfg.print("\n");
 
     // ------------------------------------------------------------------------
 
     // Adjacent underscores in the current row
-    auto underscores = bf.new_var("underscores", 1);
+    auto underscores = bfg.new_var("underscores", 1);
 
     // For each row // for (i = row; i > 0; --i)
-    auto i = bf.new_var("i");
+    auto i = bfg.new_var("i");
     rows->copy_to(*i);
-    bf.while_begin(*i);
+    bfg.while_begin(*i);
     {
         // Just print an X for the first column
-        bf.print("X");
+        bfg.print("X");
 
         // Column position, count < underscores -> print "_"
-        auto count = bf.new_var("count", 0);
+        auto count = bfg.new_var("count", 0);
 
         // For each col but the first // for (j = cols - 1; j > 0; --j)
-        auto j = bf.new_var("j");
+        auto j = bfg.new_var("j");
         cols->copy_to(*j);
         j->dec();
-        bf.while_begin(*j);
+        bfg.while_begin(*j);
         {
             // If count < underscores
-            auto res = bf.new_var("res");
+            auto res = bfg.new_var("res");
             count->copy_to(*res);
             res->lower_than(*underscores);
-            bf.if_begin(*res);
+            bfg.if_begin(*res);
             {
                 // Print "_" and ++count
-                bf.print("_");
+                bfg.print("_");
                 count->inc();
             }
-            bf.if_end(*res);
+            bfg.if_end(*res);
 
             // Else (count >= underscores)
-            auto not_res = bf.new_var("not_res");
+            auto not_res = bfg.new_var("not_res");
             not_res->negate(*res);
-            bf.if_begin(*not_res);
+            bfg.if_begin(*not_res);
             {
                 // Print "X" and reset count
-                bf.print("X");
+                bfg.print("X");
                 count->set(0);
             }
-            bf.if_end(*not_res);
+            bfg.if_end(*not_res);
 
             j->dec();
         }
-        bf.while_end(*j);
-        bf.print("\n");
+        bfg.while_end(*j);
+        bfg.print("\n");
 
         // More underscores in the next row
         underscores->inc();
         i->dec();
     }
-    bf.while_end(*i);
+    bfg.while_end(*i);
 
     // Print to file
     std::ofstream out("Ueb3Aufg2.bf");
-    out << bf;
-    //auto minimal_code = bf.minimal_code();
+    out << bfg;
+    //auto minimal_code = bfg.minimal_code();
     //out << minimal_code;
 
     return 0;

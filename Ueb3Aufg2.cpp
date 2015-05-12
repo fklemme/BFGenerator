@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
         auto in = bf.new_var("in");
         auto zero = bf.new_var("zero", '0');
         // Read cols
-        //bf.print("Cols? ");
+        bf.print("Cols? ");
         in->input();
         bf.while_begin(*in);
         {
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
         bf.while_end(*in);
 
         // Read rows
-        //bf.print("Rows? ");
+        bf.print("Rows? ");
         in->input();
         bf.while_begin(*in);
         {
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
         }
         bf.while_end(*in);
     }
-    //bf.print("\n");
+    bf.print("\n");
 
     // ------------------------------------------------------------------------
 
@@ -130,9 +130,9 @@ int main(int argc, char** argv) {
 
     // Print to file
     std::ofstream out("Ueb3Aufg2.bf");
-    //out << bf;
-    auto minimal_code = bf.minimal_code();
-    out << minimal_code;
+    out << bf;
+    //auto minimal_code = bf.minimal_code();
+    //out << minimal_code;
 
     return 0;
 }

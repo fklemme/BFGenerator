@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
             bf.if_end(*res);
 
             auto not_res = bf.new_var("not_res");
-            not_res->not(*res);
+            not_res->negate(*res);
             bf.if_begin(*not_res);
             {
                 // End input cols
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
             bf.if_end(*res);
 
             auto not_res = bf.new_var("not_res");
-            not_res->not(*res);
+            not_res->negate(*res);
             bf.if_begin(*not_res);
             {
                 // End input cols
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 
             // Else (count >= underscores)
             auto not_res = bf.new_var("not_res");
-            not_res->not(*res);
+            not_res->negate(*res);
             bf.if_begin(*not_res);
             {
                 // Print "X" and reset count

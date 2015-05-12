@@ -10,6 +10,8 @@
 
 namespace bfg {
 
+    class var;
+
     class brainfuck {
         friend class var;
         typedef std::shared_ptr<var> var_ptr;
@@ -75,7 +77,7 @@ namespace bfg {
         void input();
         void output() const;
 
-        void not(const var&);
+        void negate(const var&);
 
         void move_to(var&);
         void move_to_both(var&, var&);

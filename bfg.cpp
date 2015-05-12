@@ -68,9 +68,9 @@ namespace bfg {
         std::vector<unsigned> col_sizes(3, 0);
         for (const auto& row : bf.m_out) {
             const unsigned indent = std::get<3>(row) * indention_factor;
-            col_sizes[0] = std::max(col_sizes[0], std::get<0>(row).size()); // move
-            col_sizes[1] = std::max(col_sizes[1], indent + std::get<1>(row).size()); // operation
-            col_sizes[2] = std::max(col_sizes[2], std::get<2>(row).size()); // comment
+            col_sizes[0] = std::max(col_sizes[0], (unsigned) std::get<0>(row).size()); // move
+            col_sizes[1] = std::max(col_sizes[1], indent + (unsigned) std::get<1>(row).size()); // operation
+            col_sizes[2] = std::max(col_sizes[2], (unsigned) std::get<2>(row).size()); // comment
         }
 
         o << std::left;
@@ -187,7 +187,7 @@ namespace bfg {
             m_bf.m_indention);
     }
 
-    void var::not(const var& v) {
+    void var::negate(const var& v) {
         m_bf.m_out.emplace_back("", "Set " + m_name + " to not " + v.m_name, "", m_bf.m_indention);
         this->set(1);
         m_bf.if_begin(v);

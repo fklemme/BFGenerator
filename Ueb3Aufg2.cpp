@@ -1,4 +1,5 @@
 #include "bf/generator.h"
+
 #include <fstream>
 
 int main(int argc, char **argv) {
@@ -40,6 +41,7 @@ int main(int argc, char **argv) {
     // Read input
     auto cols = bfg.new_var("cols");
     auto rows = bfg.new_var("rows");
+
     bfg.print("Cols? ");
     read_int(*cols);
     bfg.print("Rows? ");
@@ -70,20 +72,20 @@ int main(int argc, char **argv) {
         bfg.while_begin(*j);
         {
             // If count < underscores
-            auto res = bfg.new_var("res");
-            count->copy_to(*res);
-            res->lower_than(*underscores);
-            bfg.if_begin(*res);
+            auto cmp_res = bfg.new_var("cmp_res");
+            count->copy_to(*cmp_res);
+            cmp_res->lower_than(*underscores);
+            bfg.if_begin(*cmp_res);
             {
                 // Print "_" and ++count
                 bfg.print("_");
                 count->inc();
             }
-            bfg.if_end(*res);
+            bfg.if_end(*cmp_res);
 
             // Else (count >= underscores)
             auto not_res = bfg.new_var("not_res");
-            not_res->negate(*res);
+            not_res->negate(*cmp_res);
             bfg.if_begin(*not_res);
             {
                 // Print "X" and reset count

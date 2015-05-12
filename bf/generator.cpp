@@ -8,31 +8,49 @@
 namespace bf {
 
     std::shared_ptr<var> generator::new_var(std::string var_name, unsigned init_value, unsigned pref_stack_pos) {
-        if (var_name.compare("") != 0 && m_var_to_pos.find(var_name) != m_var_to_pos.end())
-            throw std::logic_error("A variable named " + var_name + " already exists!");
+        // Check variable name
+        if (var_name.compare("") != 0) {
+            if (m_var_to_pos.find(var_name) != m_var_to_pos.end())
+                throw std::logic_error("A variable named '" + var_name + "' already exists!");
 
+            const std::string bf_instructions = "><+-.,[]";
+            for (char c : var_name)
+                if (std::find(bf_instructions.begin(), bf_instructions.end(), c) != bf_instructions.end())
+                    throw std::logic_error("Variable name must not contain brainfuck operators! (" + bf_instructions + ")");
+        }
+
+        // Find free memory (to be optimized)
         unsigned stack_pos = 0;
         while (m_pos_to_var.find(stack_pos) != m_pos_to_var.end())
             ++stack_pos;
 
+        // Assign variable name, if not set
         if (var_name.compare("") == 0)
-            var_name = std::to_string(stack_pos);
+            var_name = "_" + std::to_string(stack_pos);
 
-        m_out.emplace_back("", "Declaring variable " + var_name + " at position " + std::to_string(stack_pos), "",  m_indention);
+        m_out.emplace_back("", "",
+                "Declaring variable '" + var_name + "' at position " + std::to_string(stack_pos),
+                m_indention);
         m_var_to_pos.emplace(var_name, stack_pos);
         m_pos_to_var.emplace(stack_pos, var_name);
         
-        auto v = std::shared_ptr<var>(new var(*this, var_name, stack_pos));
-        v->set(init_value);
-        return v;
+        auto new_var = std::shared_ptr<var>(new var(*this, var_name, stack_pos));
+        new_var->set(init_value);
+        return new_var;
     }
 
-    void generator::while_begin(const var& v) {
-        m_out.emplace_back(move_sp_to(v), "[", "While " + v.m_name + " is not 0", m_indention++);
+    void generator::while_begin(const var &v) {
+        m_out.emplace_back(move_sp_to(v),
+                "[",
+                "While '" + v.m_name + "' is not 0",
+                m_indention++);
     }
 
-    void generator::while_end(const var& v) {
-        m_out.emplace_back(move_sp_to(v), "]", "End while " + v.m_name, --m_indention);
+    void generator::while_end(const var &v) {
+        m_out.emplace_back(move_sp_to(v),
+                "]",
+                "End while '" + v.m_name + "'",
+                --m_indention);
     }
 
     void generator::if_begin(const var& v) {

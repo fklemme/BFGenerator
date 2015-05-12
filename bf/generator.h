@@ -49,7 +49,7 @@ namespace bf {
     private:
         std::string move_sp_to(const var&);
 
-        // Output format: moves, operations, comment, indentation
+        // Output format: sp moves, operations, comment, indentation
         std::vector<std::tuple<std::string, std::string, std::string, unsigned>> m_out;
         unsigned m_indention = 0;
         std::map<std::string, unsigned> m_var_to_pos;

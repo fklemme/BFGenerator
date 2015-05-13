@@ -21,12 +21,13 @@ namespace bf {
 
         template <unsigned size>
         std::array<var_ptr, size> new_var_array(std::string array_name = "") {
+            // Find space to allocate array
             unsigned start_pos = 0;
-            for (auto it = m_pos_to_var.begin(); it != m_pos_to_var.end() && it->first <= start_pos + size; ++it)
+            for (auto it = m_pos_to_var.begin(); it != m_pos_to_var.end() && it->first < start_pos + size; ++it)
                 start_pos = it->first + 1;
 
             if (array_name.compare("") == 0)
-                array_name = std::to_string(start_pos);
+                array_name = "_" + std::to_string(start_pos);
 
             std::array<var_ptr, size> res;
             for (unsigned i = 0; i < size; ++i)
@@ -52,10 +53,10 @@ namespace bf {
         // Output format: sp moves, operations, comment, indentation
         std::vector<std::tuple<std::string, std::string, std::string, unsigned>> m_out;
         unsigned m_indention = 0;
+
         std::map<std::string, unsigned> m_var_to_pos;
         std::map<unsigned, std::string> m_pos_to_var;
         unsigned m_stackpos = 0;
-        std::map<const var* const, var_ptr> m_if_var_backup;
     };
 
     class var {

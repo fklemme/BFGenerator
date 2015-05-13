@@ -10,7 +10,7 @@ namespace bf {
     std::shared_ptr<var> generator::new_var(std::string var_name, unsigned init_value, unsigned pref_stack_pos) {
         // Check variable name
         if (var_name.compare("") != 0) {
-            if (m_var_to_pos.find(var_name) != m_var_to_pos.end())
+            if (std::any_of(m_pos_to_var.begin(), m_pos_to_var.end(), [&var_name](const auto &kv) {return var_name.compare(kv.second->m_name) == 0;}))
                 throw std::logic_error("A variable named '" + var_name + "' already exists!");
 
             const std::string bf_instructions = "><+-.,[]";
@@ -31,8 +31,6 @@ namespace bf {
         m_out.emplace_back("", "", // NOP
                 "Declare variable '" + var_name + "' at position " + std::to_string(stack_pos),
                 m_indention);
-        m_var_to_pos.emplace(var_name, stack_pos);
-        m_pos_to_var.emplace(stack_pos, var_name);
         
         auto new_var = std::shared_ptr<var>(new var(*this, var_name, stack_pos));
         new_var->set(init_value);
@@ -134,22 +132,13 @@ namespace bf {
     }
 
     std::string generator::move_sp_to(const var& v) {
-        const auto var_pos = m_var_to_pos.at(v.m_name);
-        int dist = (int) m_var_to_pos.at(v.m_name) - (int) m_stackpos;
-        m_stackpos = var_pos;
+        int dist = (int) v.m_pos - (int) m_stackpos;
+        m_stackpos = v.m_pos;
 
         if (dist >= 0)
             return std::string(dist, '>');
         else
             return std::string(-dist, '<');
-    }
-
-    var::var(generator& bf, const std::string& var_name, unsigned stack_pos)
-        : m_gen(bf), m_name(var_name), m_pos(stack_pos) {}
-
-    var::~var() {
-        m_gen.m_var_to_pos.erase(m_name);
-        m_gen.m_pos_to_var.erase(m_pos);
     }
 
     void var::inc() {
@@ -213,7 +202,7 @@ namespace bf {
             m_gen.m_indention);
     }
 
-    void var::negate(const var& v) {
+    void var::not_of(const var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "Set '" + m_name + "' to not '" + v.m_name + "'",
                 m_gen.m_indention);
@@ -323,6 +312,16 @@ namespace bf {
         v_copy->lower_equal(*this);
         this->set(0);
         v_copy->move_to(*this);
+    }
+
+    var::var(generator& gen, const std::string& var_name, unsigned stack_pos)
+        : m_gen(gen), m_name(var_name), m_pos(stack_pos)
+    {
+        m_gen.m_pos_to_var.emplace(m_pos, this);
+    }
+
+    var::~var() {
+        m_gen.m_pos_to_var.erase(m_pos);
     }
 
 }

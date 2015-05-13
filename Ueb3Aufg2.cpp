@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
             bfg.if_end(*cmp_res);
 
             auto not_res = bfg.new_var("not_res");
-            not_res->negate(*cmp_res);
+            not_res->not_of(*cmp_res);
             bfg.if_begin(*not_res);
             {
                 // End input cols
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
 
             // Else (count >= underscores)
             auto not_res = bfg.new_var("not_res");
-            not_res->negate(*cmp_res);
+            not_res->not_of(*cmp_res);
             bfg.if_begin(*not_res);
             {
                 // Print "X" and reset count

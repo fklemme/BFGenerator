@@ -54,16 +54,12 @@ namespace bf {
         std::vector<std::tuple<std::string, std::string, std::string, unsigned>> m_out;
         unsigned m_indention = 0;
 
-        std::map<std::string, unsigned> m_var_to_pos;
-        std::map<unsigned, std::string> m_pos_to_var;
+        std::map<unsigned, var*> m_pos_to_var;
         unsigned m_stackpos = 0;
     };
 
     class var {
         friend class generator;
-
-        var(generator&, const std::string& var_name, unsigned stack_pos);
-        var(const var&) = delete;
 
     public:
         ~var();
@@ -78,7 +74,7 @@ namespace bf {
         void input();
         void output() const;
 
-        void negate(const var&);
+        void not_of(const var&);
 
         void move_to(var&);
         void move_to_both(var&, var&);
@@ -91,6 +87,9 @@ namespace bf {
         void greater_equal(const var&);
 
     private:
+        var(generator&, const std::string& var_name, unsigned stack_pos);
+        var(const var&) = delete;
+
         generator& m_gen;
         const std::string m_name;
         const unsigned m_pos;

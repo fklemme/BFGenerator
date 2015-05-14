@@ -30,7 +30,7 @@ namespace bf {
             var_name = "_" + std::to_string(stack_pos);
 
         m_out.emplace_back("", "", // NOP
-                "Declare variable '" + var_name + "' at position " + std::to_string(stack_pos),
+                "(Debug) Declare variable '" + var_name + "' at position " + std::to_string(stack_pos),
                 m_indention);
         
         auto new_var = std::shared_ptr<var>(new var(*this, var_name, stack_pos));
@@ -53,7 +53,8 @@ namespace bf {
     }
 
     void generator::if_begin(const var& v) {
-        m_out.emplace_back(move_sp_to(v),
+        v.copy_to(if_var());
+        m_out.emplace_back(move_sp_to(if_var()),
                 "[",
                 "If '" + v.m_name + "' is not 0",
                 m_indention++);
@@ -61,8 +62,8 @@ namespace bf {
 
     void generator::if_end(const var& v) {
         // Ensure leaving the 'if'
-        const auto null = new_var();
-        m_out.emplace_back(move_sp_to(*null),
+        if_var().set(0);
+        m_out.emplace_back(move_sp_to(if_var()),
                 "]",
                 "End if '" + v.m_name + "'",
                 --m_indention);
@@ -76,7 +77,7 @@ namespace bf {
         std::replace(comment_text.begin(), comment_text.end(), '\n', '_');
 
         m_out.emplace_back("", "", // NOP
-                "Print '" + comment_text + "'",
+                "(Debug) Print '" + comment_text + "'",
                 m_indention);
 
         auto temp = new_var("_print_char");
@@ -146,6 +147,12 @@ namespace bf {
             return std::string(-dist, '<');
     }
 
+    var& generator::if_var() {
+        if (m_if_var == nullptr)
+            m_if_var = new_var("_if_var");
+        return *m_if_var;
+    }
+
     void var::inc() {
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
             "+",
@@ -183,9 +190,9 @@ namespace bf {
 
     void var::mult(unsigned value) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "Multiply '" + m_name + "' by " + std::to_string(value),
+                "(Debug) Multiply '" + m_name + "' by " + std::to_string(value),
                 m_gen.m_indention);
-        auto temp = m_gen.new_var("_temp_mult");
+        auto temp = m_gen.new_var("_mult");
         this->move_to(*temp);
         m_gen.while_begin(*temp);
         this->add(value);
@@ -209,7 +216,7 @@ namespace bf {
 
     void var::move_to(var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "Move '" + m_name + "' to '" + v.m_name + "'",
+                "(Debug) Move '" + m_name + "' to '" + v.m_name + "'",
                 m_gen.m_indention);
         v.set(0);
         m_gen.while_begin(*this);
@@ -220,7 +227,7 @@ namespace bf {
 
     void var::move_to_both(var& v1, var& v2) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "Move '" + m_name + "' to '" + v1.m_name + "' and to '" + v2.m_name + "'",
+                "(Debug) Move '" + m_name + "' to '" + v1.m_name + "' and to '" + v2.m_name + "'",
                 m_gen.m_indention);
         v1.set(0);
         v2.set(0);
@@ -234,9 +241,9 @@ namespace bf {
     void var::copy_to(var& v) const {
         auto t_ptr = const_cast<var*>(this);
         m_gen.m_out.emplace_back("", "", // NOP
-                "Copy '" + m_name + "' to '" + v.m_name + "'",
+                "(Debug) Copy '" + m_name + "' to '" + v.m_name + "'",
                 m_gen.m_indention);
-        auto temp = m_gen.new_var("_temp_copy_to");
+        auto temp = m_gen.new_var("_copy_to");
         t_ptr->move_to_both(v, *temp);
         // restore *this
         temp->move_to(*t_ptr);
@@ -245,9 +252,9 @@ namespace bf {
     void var::add_to(var& v) const {
         auto t_ptr = const_cast<var*>(this);
         m_gen.m_out.emplace_back("", "", // NOP
-                "Add '" + m_name + "' to '" + v.m_name + "'",
+                "(Debug) Add '" + m_name + "' to '" + v.m_name + "'",
                 m_gen.m_indention);
-        auto temp = m_gen.new_var("_temp_add_to");
+        auto temp = m_gen.new_var("_add_to");
         // like move_to_both but without clearing targets
         m_gen.while_begin(*this);
         v.inc();
@@ -261,9 +268,9 @@ namespace bf {
     void var::sub_from(var& v) const {
         auto t_ptr = const_cast<var*>(this);
         m_gen.m_out.emplace_back("", "", // NOP
-                "Subtract '" + m_name + "' from '" + v.m_name + "'",
+                "(Debug) Subtract '" + m_name + "' from '" + v.m_name + "'",
                 m_gen.m_indention);
-        auto temp = m_gen.new_var("_temp_sub_from");
+        auto temp = m_gen.new_var("_sub_from");
         // like move_to_both but without clearing targets
         m_gen.while_begin(*this);
         v.dec();
@@ -276,7 +283,7 @@ namespace bf {
 
     void var::not_of(const var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "Set '" + m_name + "' to not '" + v.m_name + "'",
+                "(Debug) Set '" + m_name + "' to not '" + v.m_name + "'",
                 m_gen.m_indention);
         this->set(1);
         m_gen.if_begin(v);
@@ -286,13 +293,13 @@ namespace bf {
 
     void var::lower_than(const var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "Compare '" + m_name + "' lower than '" + v.m_name + "'",
+                "(Debug) Compare '" + m_name + "' lower than '" + v.m_name + "'",
                 m_gen.m_indention);
 
         // Similar to http://stackoverflow.com/a/13327857
         // array = {1 (result), 1, 0, a, b, 0}
         //    pos: [0]         [1][2][3][4][5]
-        auto array = m_gen.new_var_array<6>("_temp_lt");
+        auto array = m_gen.new_var_array<6>("_lt");
         array[0]->set(1);
         array[1]->set(1);
         this->move_to(*array[3]); // this -> a

@@ -49,7 +49,9 @@ namespace bf {
         std::string get_minimal_code() const;
 
     private:
+        // Helper
         std::string move_sp_to(const var&);
+        var& if_var();
 
         // Output format: sp moves, operations, comment, indentation
         std::vector<std::tuple<std::string, std::string, std::string, unsigned>> m_out;
@@ -57,6 +59,7 @@ namespace bf {
 
         std::map<unsigned, var*> m_pos_to_var;
         unsigned m_stackpos = 0;
+        var_ptr m_if_var;
     };
 
     class var {
@@ -75,12 +78,16 @@ namespace bf {
         void input();
         void output() const;
 
+        // Old API
         void move_to(var&);
         void move_to_both(var&, var&);
         void copy_to(var&) const;
         void add_to(var&) const;
         void sub_from(var&) const;
         void not_of(const var&);
+
+        // New API
+        // ...
 
         void lower_than(const var&);
         void lower_equal(const var&);

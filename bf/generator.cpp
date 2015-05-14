@@ -10,7 +10,8 @@ namespace bf {
     std::shared_ptr<var> generator::new_var(std::string var_name, unsigned init_value, unsigned pref_stack_pos) {
         // Check variable name
         if (var_name.compare("") != 0) {
-            if (std::any_of(m_pos_to_var.begin(), m_pos_to_var.end(), [&var_name](const auto &kv) {return var_name.compare(kv.second->m_name) == 0;}))
+            // FK: No generic lambdas in C++11 :/
+            if (std::any_of(m_pos_to_var.begin(), m_pos_to_var.end(), [&var_name](decltype(*m_pos_to_var.begin()) &kv) {return var_name.compare(kv.second->m_name) == 0;}))
                 throw std::logic_error("A variable named '" + var_name + "' already exists!");
 
             const std::string bf_instructions = "><+-.,[]";
@@ -107,10 +108,14 @@ namespace bf {
         return o;
     }
 
-    std::string generator::minimal_code() const {
+    std::string generator::get_code() const {
         std::stringstream ss;
         ss << *this;
-        auto full_code = ss.str();
+        return ss.str();
+    }
+
+    std::string generator::get_minimal_code() const {
+        auto full_code = get_code();
 
         std::string minimal_code, bf_instructions = "><+-.,[]";
         for (char c : full_code) {
@@ -202,16 +207,6 @@ namespace bf {
             m_gen.m_indention);
     }
 
-    void var::not_of(const var& v) {
-        m_gen.m_out.emplace_back("", "", // NOP
-                "Set '" + m_name + "' to not '" + v.m_name + "'",
-                m_gen.m_indention);
-        this->set(1);
-        m_gen.if_begin(v);
-        this->set(0);
-        m_gen.if_end(v);
-    }
-
     void var::move_to(var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "Move '" + m_name + "' to '" + v.m_name + "'",
@@ -261,6 +256,32 @@ namespace bf {
         m_gen.while_end(*this);
         // restore *this
         temp->move_to(*t_ptr);
+    }
+
+    void var::sub_from(var& v) const {
+        auto t_ptr = const_cast<var*>(this);
+        m_gen.m_out.emplace_back("", "", // NOP
+                "Subtract '" + m_name + "' from '" + v.m_name + "'",
+                m_gen.m_indention);
+        auto temp = m_gen.new_var("_temp_sub_from");
+        // like move_to_both but without clearing targets
+        m_gen.while_begin(*this);
+        v.dec();
+        temp->inc();
+        t_ptr->dec();
+        m_gen.while_end(*this);
+        // restore *this
+        temp->move_to(*t_ptr);
+    }
+
+    void var::not_of(const var& v) {
+        m_gen.m_out.emplace_back("", "", // NOP
+                "Set '" + m_name + "' to not '" + v.m_name + "'",
+                m_gen.m_indention);
+        this->set(1);
+        m_gen.if_begin(v);
+        this->set(0);
+        m_gen.if_end(v);
     }
 
     void var::lower_than(const var& v) {

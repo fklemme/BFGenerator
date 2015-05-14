@@ -45,7 +45,8 @@ namespace bf {
         void print(const std::string &text);
 
         friend std::ostream& operator<<(std::ostream&, const generator&);
-        std::string minimal_code() const;
+        std::string get_code() const;
+        std::string get_minimal_code() const;
 
     private:
         std::string move_sp_to(const var&);
@@ -74,12 +75,12 @@ namespace bf {
         void input();
         void output() const;
 
-        void not_of(const var&);
-
         void move_to(var&);
         void move_to_both(var&, var&);
         void copy_to(var&) const;
         void add_to(var&) const;
+        void sub_from(var&) const;
+        void not_of(const var&);
 
         void lower_than(const var&);
         void lower_equal(const var&);

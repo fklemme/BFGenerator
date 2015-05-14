@@ -67,6 +67,14 @@ namespace bf {
             }
         }
 
+        std::size_t get_sp_position() const {
+            return m_stack_pointer;
+        }
+
+        memory_type get_current_mem() const {
+            return m_memory.at(m_stack_pointer);
+        }
+
     private:
         const std::string                  m_program;
         std::size_t                        m_instruction_pointer;

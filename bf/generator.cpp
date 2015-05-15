@@ -52,7 +52,7 @@ namespace bf {
                 --m_indention);
     }
 
-    void generator::if_begin(const var& v) {
+    void generator::if_begin(const var &v) {
         if_var().copy(v);
         m_out.emplace_back(move_sp_to(if_var()),
                 "[",
@@ -60,7 +60,7 @@ namespace bf {
                 m_indention++);
     }
 
-    void generator::if_end(const var& v) {
+    void generator::if_end(const var &v) {
         // Ensure leaving the 'if'
         if_var().set(0);
         m_out.emplace_back(move_sp_to(if_var()),
@@ -69,7 +69,7 @@ namespace bf {
                 --m_indention);
     }
 
-    void generator::print(const std::string& text) {
+    void generator::print(const std::string &text) {
         // Make Brainfuck-free text version for debug commentary
         std::string comment_text = text;
         for (char op : bf_ops)
@@ -88,12 +88,12 @@ namespace bf {
         }
     }
 
-    std::ostream& operator<<(std::ostream& o, const generator& bf) {
+    std::ostream& operator<<(std::ostream &o, const generator &g) {
         const unsigned indention_factor = 4;
 
         // Find good coloum width for formating
         std::vector<unsigned> col_sizes(3, 0);
-        for (const auto& row : bf.m_out) {
+        for (const auto& row : g.m_out) {
             const unsigned indent = std::get<3>(row) * indention_factor;
             col_sizes[0] = std::max(col_sizes[0], (unsigned) std::get<0>(row).size()); // stack pointer move
             col_sizes[1] = std::max(col_sizes[1], (unsigned) std::get<1>(row).size() + indent); // operation
@@ -102,7 +102,7 @@ namespace bf {
 
         // Print code to stream
         o << std::left;
-        for (const auto& row : bf.m_out) {
+        for (const auto& row : g.m_out) {
             const unsigned indent = std::get<3>(row) * indention_factor;
             o << std::setw(col_sizes[0]) << std::get<0>(row); // stack pointer move
             o << ' ' << std::setw(col_sizes[1]) << (std::string(indent, ' ') + std::get<1>(row)); // operation
@@ -141,7 +141,7 @@ namespace bf {
         return minimal_code;
     }
 
-    std::string generator::move_sp_to(const var& v) {
+    std::string generator::move_sp_to(const var &v) {
         int dist = (int) v.m_pos - (int) m_stackpos;
         m_stackpos = v.m_pos;
 
@@ -219,7 +219,7 @@ namespace bf {
                 m_gen.m_indention);
     }
 
-    void var::move(var& v) {
+    void var::move(var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Move from '" + v.m_name + "' to '" + m_name + "'",
                 m_gen.m_indention);
@@ -231,7 +231,7 @@ namespace bf {
         m_gen.while_end(v);
     }
 
-    void var::copy(const var& v) {
+    void var::copy(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Copy from '" + v.m_name + "' to '" + m_name + "'",
                 m_gen.m_indention);
@@ -249,7 +249,7 @@ namespace bf {
         v_ptr->move(*temp);
     }
 
-    void var::add(const var& v) {
+    void var::add(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Add '" + v.m_name + "' to '" + m_name + "'",
                 m_gen.m_indention);
@@ -266,7 +266,7 @@ namespace bf {
         v_ptr->move(*temp);
     }
 
-    void var::subtract(const var& v) {
+    void var::subtract(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Subtract '" + v.m_name + "' from '" + m_name + "'",
                 m_gen.m_indention);
@@ -283,7 +283,7 @@ namespace bf {
         v_ptr->move(*temp);
     }
 
-    void var::multiply(const var& v) {
+    void var::multiply(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Multiply '" + v.m_name + "' with '" + m_name + "'",
                 m_gen.m_indention);
@@ -296,7 +296,7 @@ namespace bf {
         m_gen.while_end(*temp);
     }
 
-    void var::bool_not(const var& v) {
+    void var::bool_not(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Set '" + m_name + "' to not '" + v.m_name + "'",
                 m_gen.m_indention);
@@ -306,7 +306,7 @@ namespace bf {
         m_gen.if_end(v);
     }
 
-    void var::lower_than(const var& v) {
+    void var::lower_than(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Compare '" + m_name + "' lower than '" + v.m_name + "'",
                 m_gen.m_indention);
@@ -324,7 +324,7 @@ namespace bf {
                 "+>+<"       // This is for managing if a = 0 and b = 0.
                 "[->-[>]<<]" // If a is the one which reaches 0 first (a < b),
                              // then pointer will be at [3]. Else it will be at [2].
-                "<[<->->]>", // If "else" (a >= b), set result at [0] to 0 and
+                "<[<->>]>",  // If "else" (a >= b), set result at [0] to 0 and
                              // correct stack pointer position to [3] at the end.
                 "Compare operation sequence for lower than",
                 m_gen.m_indention);
@@ -333,7 +333,7 @@ namespace bf {
         this->move(*array[0]);
     }
 
-    void var::lower_equal(const var& v) {
+    void var::lower_equal(const var &v) {
         // (this <= v) == (this < v + 1)
         auto v_1 = m_gen.new_var("_" + v.m_name + "_plus_1");
         v_1->copy(v);
@@ -341,7 +341,7 @@ namespace bf {
         this->lower_than(*v_1);
     }
 
-    void var::greater_than(const var& v) {
+    void var::greater_than(const var &v) {
         // (this > v) == (v < this)
         auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
         v_copy->copy(v);
@@ -349,12 +349,47 @@ namespace bf {
         this->move(*v_copy);
     }
 
-    void var::greater_equal(const var& v) {
+    void var::greater_equal(const var &v) {
         // (this >= v) == (v <= this)
         auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
         v_copy->copy(v);
         v_copy->lower_equal(*this);
         this->move(*v_copy);
+    }
+
+    void var::equal(const var &v) {
+        m_gen.m_out.emplace_back("", "", // NOP
+                "(Debug) Compare '" + m_name + "' equal to '" + v.m_name + "'",
+                m_gen.m_indention);
+
+        // Similar to http://stackoverflow.com/a/13327857
+        // array = {0 (result), 1, 0, a, b, 0}
+        //    pos: [0]         [1][2][3][4][5]
+        auto array = m_gen.new_var_array<6>("_lower_than");
+        array[1]->set(1);
+        array[3]->move(*this); // a ^= *this
+        array[4]->copy(v);     // b ^= v
+
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[3]),
+                "+>+<"         // This is for managing if a = 0 and b = 0.
+                "[->-[>]<<]"   // If a is the one which reaches 0 first (a < b),
+                               // then pointer will be at [3]. Else it will be at [2].
+                "<["           // If "else" (a >= b)...
+                "<+>>>"        // ...set result at [0] to 1 at first (expecting a = b)
+                "[<<<->>>[-]]" // ...and reset result to 0 if a > 0
+                "<]>",         // Correct stack pointer position to [3] at the end.
+                "Compare operation sequence for compare equal",
+                m_gen.m_indention);
+
+        // Move result to *this
+        this->move(*array[0]);
+    }
+
+    void var::not_equal(const var &v) {
+        auto temp = m_gen.new_var("_not_equal");
+        temp->copy(*this);
+        temp->equal(v);
+        this->bool_not(*temp);
     }
 
     var::var(generator& gen, const std::string& var_name, unsigned stack_pos)

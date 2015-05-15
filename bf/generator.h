@@ -91,6 +91,8 @@ namespace bf {
         void lower_equal(const var&);
         void greater_than(const var&);
         void greater_equal(const var&);
+        void equal(const var&);
+        void not_equal(const var&);
 
     private:
         var(generator&, const std::string& var_name, unsigned stack_pos);

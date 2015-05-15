@@ -339,10 +339,10 @@ BOOST_AUTO_TEST_CASE(example_ggt) {
         a->read_input();
         b->read_input();
 
-        auto eq = bfg.new_var("eq");
-        eq->copy(*a);
-        eq->not_equal(*b);
-        bfg.while_begin(*eq); // a != b
+        auto neq = bfg.new_var("neq");
+        neq->copy(*a);
+        neq->not_equal(*b);
+        bfg.while_begin(*neq); // a != b
         {
             auto lt = bfg.new_var("lt");
             lt->copy(*a);
@@ -361,10 +361,10 @@ BOOST_AUTO_TEST_CASE(example_ggt) {
             }
             bfg.if_end(*ge);
 
-            eq->copy(*a);
-            eq->not_equal(*b);
+            neq->copy(*a);
+            neq->not_equal(*b);
         }
-        bfg.while_end(*eq);
+        bfg.while_end(*neq);
         a->write_output();
 
         // Ensure correct SP movement

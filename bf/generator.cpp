@@ -326,7 +326,7 @@ namespace bf {
                              // then pointer will be at [3]. Else it will be at [2].
                 "<[<->>]>",  // If "else" (a >= b), set result at [0] to 0 and
                              // correct stack pointer position to [3] at the end.
-                "Compare operation sequence for lower than",
+                "Compare operation sequence for 'lower than'",
                 m_gen.m_indention);
 
         // Move result to *this
@@ -365,7 +365,7 @@ namespace bf {
         // Similar to http://stackoverflow.com/a/13327857
         // array = {0 (result), 1, 0, a, b, 0}
         //    pos: [0]         [1][2][3][4][5]
-        auto array = m_gen.new_var_array<6>("_lower_than");
+        auto array = m_gen.new_var_array<6>("_equal");
         array[1]->set(1);
         array[3]->move(*this); // a ^= *this
         array[4]->copy(v);     // b ^= v
@@ -378,7 +378,7 @@ namespace bf {
                 "<+>>>"        // ...set result at [0] to 1 at first (expecting a = b)
                 "[<<<->>>[-]]" // ...and reset result to 0 if a > 0
                 "<]>",         // Correct stack pointer position to [3] at the end.
-                "Compare operation sequence for compare equal",
+                "Compare operation sequence for 'equal'",
                 m_gen.m_indention);
 
         // Move result to *this
@@ -386,7 +386,7 @@ namespace bf {
     }
 
     void var::not_equal(const var &v) {
-        auto temp = m_gen.new_var("_not_equal");
+        auto temp = m_gen.new_var("_equal");
         temp->copy(*this);
         temp->equal(v);
         this->bool_not(*temp);

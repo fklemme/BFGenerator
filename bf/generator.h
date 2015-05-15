@@ -10,6 +10,8 @@
 
 namespace bf {
 
+    static const std::string bf_ops = "><+-.,[]";
+
     class var;
 
     class generator {
@@ -68,26 +70,22 @@ namespace bf {
     public:
         ~var();
 
-        void inc();
-        void dec();
+        void increment();
+        void decrement();
         void set(unsigned);
         void add(unsigned);
-        void sub(unsigned);
-        void mult(unsigned);
+        void subtract(unsigned);
+        void multiply(unsigned);
 
-        void input();
-        void output() const;
+        void read_input();
+        void write_output() const;
 
-        // Old API
-        void move_to(var&);
-        void move_to_both(var&, var&);
-        void copy_to(var&) const;
-        void add_to(var&) const;
-        void sub_from(var&) const;
-        void not_of(const var&);
-
-        // New API
-        // ...
+        void move(var&);
+        void copy(const var&);
+        void add(const var&);
+        void subtract(const var&);
+        void multiply(const var&);
+        void bool_not(const var&);
 
         void lower_than(const var&);
         void lower_equal(const var&);

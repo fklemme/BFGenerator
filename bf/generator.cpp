@@ -11,13 +11,13 @@ namespace bf {
         // Check variable name
         if (var_name.compare("") != 0) {
             // FK: No generic lambdas in C++11 :/
-            if (std::any_of(m_pos_to_var.begin(), m_pos_to_var.end(), [&var_name](decltype(*m_pos_to_var.begin()) &kv) {return var_name.compare(kv.second->m_name) == 0;}))
+            if (std::any_of(m_pos_to_var.begin(), m_pos_to_var.end(),
+                        [&var_name](decltype(*m_pos_to_var.begin()) &kv) {return var_name.compare(kv.second->m_name) == 0;}))
                 throw std::logic_error("A variable named '" + var_name + "' already exists!");
 
-            const std::string bf_instructions = "><+-.,[]";
             for (char c : var_name)
-                if (std::find(bf_instructions.begin(), bf_instructions.end(), c) != bf_instructions.end())
-                    throw std::logic_error("Variable name must not contain brainfuck operators! (" + bf_instructions + ")");
+                if (std::find(bf_ops.begin(), bf_ops.end(), c) != bf_ops.end())
+                    throw std::logic_error("Variable name must not contain brainfuck operators! (" + bf_ops + ")");
         }
 
         // Find free memory (to be optimized?)
@@ -53,7 +53,7 @@ namespace bf {
     }
 
     void generator::if_begin(const var& v) {
-        v.copy_to(if_var());
+        if_var().copy(v);
         m_out.emplace_back(move_sp_to(if_var()),
                 "[",
                 "If '" + v.m_name + "' is not 0",
@@ -70,9 +70,9 @@ namespace bf {
     }
 
     void generator::print(const std::string& text) {
-        const std::string bf_instructions = "><+-.,[]";
+        // Make Brainfuck-free text version for debug commentary
         std::string comment_text = text;
-        for (char op : bf_instructions)
+        for (char op : bf_ops)
             std::replace(comment_text.begin(), comment_text.end(), op, '_');
         std::replace(comment_text.begin(), comment_text.end(), '\n', '_');
 
@@ -80,28 +80,31 @@ namespace bf {
                 "(Debug) Print '" + comment_text + "'",
                 m_indention);
 
-        auto temp = new_var("_print_char");
-        for (unsigned char c : text) {
-            temp->set(c);
-            temp->output();
+        // Print text (to be optimized?)
+        auto pc = new_var("_print_char");
+        for (char c : text) {
+            pc->set(c);
+            pc->write_output();
         }
     }
 
     std::ostream& operator<<(std::ostream& o, const generator& bf) {
         const unsigned indention_factor = 4;
 
+        // Find good coloum width for formating
         std::vector<unsigned> col_sizes(3, 0);
         for (const auto& row : bf.m_out) {
             const unsigned indent = std::get<3>(row) * indention_factor;
-            col_sizes[0] = std::max(col_sizes[0], (unsigned) std::get<0>(row).size()); // sp move
+            col_sizes[0] = std::max(col_sizes[0], (unsigned) std::get<0>(row).size()); // stack pointer move
             col_sizes[1] = std::max(col_sizes[1], (unsigned) std::get<1>(row).size() + indent); // operation
             col_sizes[2] = std::max(col_sizes[2], (unsigned) std::get<2>(row).size()); // comment
         }
 
+        // Print code to stream
         o << std::left;
         for (const auto& row : bf.m_out) {
             const unsigned indent = std::get<3>(row) * indention_factor;
-            o << std::setw(col_sizes[0]) << std::get<0>(row); // sp move
+            o << std::setw(col_sizes[0]) << std::get<0>(row); // stack pointer move
             o << ' ' << std::setw(col_sizes[1]) << (std::string(indent, ' ') + std::get<1>(row)); // operation
             o << ' ' << std::get<2>(row) << '\n'; // comment
         }
@@ -118,9 +121,10 @@ namespace bf {
     std::string generator::get_minimal_code() const {
         auto full_code = get_code();
 
-        std::string minimal_code, bf_instructions = "><+-.,[]";
+        // Filter all non-Brainfuck characters
+        std::string minimal_code;
         for (char c : full_code) {
-            if (std::find(bf_instructions.begin(), bf_instructions.end(), c) != bf_instructions.end()) {
+            if (std::find(bf_ops.begin(), bf_ops.end(), c) != bf_ops.end()) {
                 minimal_code += c;
                 if (minimal_code.size() % 80 == 0)
                     minimal_code += '\n';
@@ -153,135 +157,146 @@ namespace bf {
         return *m_if_var;
     }
 
-    void var::inc() {
+    void var::increment() {
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
-            "+",
-            "Increment '" + m_name + "'",
-            m_gen.m_indention);
+                "+",
+                "Increment '" + m_name + "'",
+                m_gen.m_indention);
     }
 
-    void var::dec() {
+    void var::decrement() {
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
-            "-",
-            "Decrement '" + m_name + "'",
-            m_gen.m_indention);
+                "-",
+                "Decrement '" + m_name + "'",
+                m_gen.m_indention);
     }
 
     void var::set(unsigned value) {
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
-            "[-]" + std::string(value, '+'),
-            "Set '" + m_name + "' to " + std::to_string(value),
-            m_gen.m_indention);
+                "[-]" + std::string(value, '+'),
+                "Set '" + m_name + "' to " + std::to_string(value),
+                m_gen.m_indention);
     }
 
     void var::add(unsigned value) {
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
-            std::string(value, '+'),
-            "Add " + std::to_string(value) + " to '" + m_name + "'",
-            m_gen.m_indention);
+                std::string(value, '+'),
+                "Add " + std::to_string(value) + " to '" + m_name + "'",
+                m_gen.m_indention);
     }
 
-    void var::sub(unsigned value) {
+    void var::subtract(unsigned value) {
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
-            std::string(value, '-'),
-            "Subtract " + std::to_string(value) + " from '" + m_name + "'",
-            m_gen.m_indention);
+                std::string(value, '-'),
+                "Subtract " + std::to_string(value) + " from '" + m_name + "'",
+                m_gen.m_indention);
     }
 
-    void var::mult(unsigned value) {
+    void var::multiply(unsigned value) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Multiply '" + m_name + "' by " + std::to_string(value),
                 m_gen.m_indention);
-        auto temp = m_gen.new_var("_mult");
-        this->move_to(*temp);
+
+        auto temp = m_gen.new_var("_multiply");
+        temp->move(*this);
         m_gen.while_begin(*temp);
         this->add(value);
-        temp->dec();
+        temp->decrement();
         m_gen.while_end(*temp);
     }
 
-    void var::input() {
+    void var::read_input() {
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
-            ",",
-            "Read input to '" + m_name + "'",
-            m_gen.m_indention);
+                ",",
+                "Read input to '" + m_name + "'",
+                m_gen.m_indention);
     }
 
-    void var::output() const {
+    void var::write_output() const {
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
-            ".",
-            "Write output from '" + m_name + "'",
-            m_gen.m_indention);
-    }
-
-    void var::move_to(var& v) {
-        m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Move '" + m_name + "' to '" + v.m_name + "'",
+                ".",
+                "Write output from '" + m_name + "'",
                 m_gen.m_indention);
-        v.set(0);
-        m_gen.while_begin(*this);
-        v.inc();
-        this->dec();
-        m_gen.while_end(*this);
     }
 
-    void var::move_to_both(var& v1, var& v2) {
+    void var::move(var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Move '" + m_name + "' to '" + v1.m_name + "' and to '" + v2.m_name + "'",
+                "(Debug) Move from '" + v.m_name + "' to '" + m_name + "'",
                 m_gen.m_indention);
-        v1.set(0);
-        v2.set(0);
-        m_gen.while_begin(*this);
-        v1.inc();
-        v2.inc();
-        this->dec();
-        m_gen.while_end(*this);
+
+        this->set(0);
+        m_gen.while_begin(v);
+        this->increment();
+        v.decrement();
+        m_gen.while_end(v);
     }
 
-    void var::copy_to(var& v) const {
-        auto t_ptr = const_cast<var*>(this);
+    void var::copy(const var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Copy '" + m_name + "' to '" + v.m_name + "'",
+                "(Debug) Copy from '" + v.m_name + "' to '" + m_name + "'",
                 m_gen.m_indention);
-        auto temp = m_gen.new_var("_copy_to");
-        t_ptr->move_to_both(v, *temp);
-        // restore *this
-        temp->move_to(*t_ptr);
+
+        // Break v temporarily
+        auto v_ptr = const_cast<var*>(&v);
+        auto temp = m_gen.new_var("_copy");
+        this->set(0);
+        m_gen.while_begin(v);
+        this->increment();
+        temp->increment();
+        v_ptr->decrement();
+        m_gen.while_end(v);
+        // Restore v
+        v_ptr->move(*temp);
     }
 
-    void var::add_to(var& v) const {
-        auto t_ptr = const_cast<var*>(this);
+    void var::add(const var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Add '" + m_name + "' to '" + v.m_name + "'",
+                "(Debug) Add '" + v.m_name + "' to '" + m_name + "'",
                 m_gen.m_indention);
-        auto temp = m_gen.new_var("_add_to");
-        // like move_to_both but without clearing targets
-        m_gen.while_begin(*this);
-        v.inc();
-        temp->inc();
-        t_ptr->dec();
-        m_gen.while_end(*this);
-        // restore *this
-        temp->move_to(*t_ptr);
+
+        // Break v temporarily
+        auto v_ptr = const_cast<var*>(&v);
+        auto temp = m_gen.new_var("_add");
+        m_gen.while_begin(v);
+        this->increment();
+        temp->increment();
+        v_ptr->decrement();
+        m_gen.while_end(v);
+        // Restore v
+        v_ptr->move(*temp);
     }
 
-    void var::sub_from(var& v) const {
-        auto t_ptr = const_cast<var*>(this);
+    void var::subtract(const var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Subtract '" + m_name + "' from '" + v.m_name + "'",
+                "(Debug) Subtract '" + v.m_name + "' from '" + m_name + "'",
                 m_gen.m_indention);
-        auto temp = m_gen.new_var("_sub_from");
-        // like move_to_both but without clearing targets
-        m_gen.while_begin(*this);
-        v.dec();
-        temp->inc();
-        t_ptr->dec();
-        m_gen.while_end(*this);
-        // restore *this
-        temp->move_to(*t_ptr);
+
+        // Break v temporarily
+        auto v_ptr = const_cast<var*>(&v);
+        auto temp = m_gen.new_var("_subtract");
+        m_gen.while_begin(v);
+        this->decrement();
+        temp->increment();
+        v_ptr->decrement();
+        m_gen.while_end(v);
+        // Restore v
+        v_ptr->move(*temp);
     }
 
-    void var::not_of(const var& v) {
+    void var::multiply(const var& v) {
+        m_gen.m_out.emplace_back("", "", // NOP
+                "(Debug) Multiply '" + v.m_name + "' with '" + m_name + "'",
+                m_gen.m_indention);
+
+        auto temp = m_gen.new_var("_multiply");
+        temp->move(*this);
+        m_gen.while_begin(*temp);
+        this->add(v);
+        temp->decrement();
+        m_gen.while_end(*temp);
+    }
+
+    void var::bool_not(const var& v) {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Set '" + m_name + "' to not '" + v.m_name + "'",
                 m_gen.m_indention);
@@ -299,47 +314,47 @@ namespace bf {
         // Similar to http://stackoverflow.com/a/13327857
         // array = {1 (result), 1, 0, a, b, 0}
         //    pos: [0]         [1][2][3][4][5]
-        auto array = m_gen.new_var_array<6>("_lt");
+        auto array = m_gen.new_var_array<6>("_lower_than");
         array[0]->set(1);
         array[1]->set(1);
-        this->move_to(*array[3]); // this -> a
-        v.copy_to(*array[4]); // v -> b
+        array[3]->move(*this); // a ^= *this
+        array[4]->copy(v);     // b ^= v
 
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[3]),
-            "+>+<" // This is for managing if a = 0 and b = 0.
-            "[->-[>]<<]" // If a is the one which reaches 0 first (a < b), then pointer will be at [3]. Else it will be at [2].
-            "<[<->->]>", // If "else" (a >= b), set result at [0] to 0 and correct stack pointer position to [3] at the end.
-            "Compare operation sequence for lower than", // comment
-            m_gen.m_indention);
+                "+>+<"       // This is for managing if a = 0 and b = 0.
+                "[->-[>]<<]" // If a is the one which reaches 0 first (a < b),
+                             // then pointer will be at [3]. Else it will be at [2].
+                "<[<->->]>", // If "else" (a >= b), set result at [0] to 0 and
+                             // correct stack pointer position to [3] at the end.
+                "Compare operation sequence for lower than",
+                m_gen.m_indention);
 
         // Move result to *this
-        array[0]->move_to(*this);
+        this->move(*array[0]);
     }
 
     void var::lower_equal(const var& v) {
         // (this <= v) == (this < v + 1)
         auto v_1 = m_gen.new_var("_" + v.m_name + "_plus_1");
-        v.copy_to(*v_1);
-        v_1->inc();
+        v_1->copy(v);
+        v_1->increment();
         this->lower_than(*v_1);
     }
 
     void var::greater_than(const var& v) {
-        auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
-        v.copy_to(*v_copy);
         // (this > v) == (v < this)
+        auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
+        v_copy->copy(v);
         v_copy->lower_than(*this);
-        this->set(0);
-        v_copy->move_to(*this);
+        this->move(*v_copy);
     }
 
     void var::greater_equal(const var& v) {
-        auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
-        v.copy_to(*v_copy);
         // (this >= v) == (v <= this)
+        auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
+        v_copy->copy(v);
         v_copy->lower_equal(*this);
-        this->set(0);
-        v_copy->move_to(*this);
+        this->move(*v_copy);
     }
 
     var::var(generator& gen, const std::string& var_name, unsigned stack_pos)

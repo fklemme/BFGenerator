@@ -61,12 +61,13 @@ namespace bf {
                 case ']': if (m_memory.at(m_stack_pointer) != 0)
                               m_instruction_pointer = m_loop_back.at(m_instruction_pointer);
                           break;
-                default:  break; // No Brainfuck OP
+                default:  break; // No Brainfuck operation
                 }
                 ++m_instruction_pointer;
             }
         }
 
+        // Debug and testing
         std::size_t get_sp_position() const {
             return m_stack_pointer;
         }

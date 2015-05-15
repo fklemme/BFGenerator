@@ -206,9 +206,9 @@ BOOST_AUTO_TEST_CASE(var__lower_than) {
         program = bfg.get_code();
     }
 
-    bfg_check(program, "4 < 5 == 1", {4, 5}, {1});
-    bfg_check(program, "5 < 5 == 0", {5, 5}, {0});
-    bfg_check(program, "5 < 4 == 0", {5, 4}, {0});
+    bfg_check(program, "(4 < 5) == 1", {4, 5}, {1});
+    bfg_check(program, "(5 < 5) == 0", {5, 5}, {0});
+    bfg_check(program, "(5 < 4) == 0", {5, 4}, {0});
 }
 
 BOOST_AUTO_TEST_CASE(var__lower_equal) {
@@ -229,9 +229,9 @@ BOOST_AUTO_TEST_CASE(var__lower_equal) {
         program = bfg.get_code();
     }
 
-    bfg_check(program, "4 <= 5 == 1", {4, 5}, {1});
-    bfg_check(program, "5 <= 5 == 1", {5, 5}, {1});
-    bfg_check(program, "5 <= 4 == 0", {5, 4}, {0});
+    bfg_check(program, "(4 <= 5) == 1", {4, 5}, {1});
+    bfg_check(program, "(5 <= 5) == 1", {5, 5}, {1});
+    bfg_check(program, "(5 <= 4) == 0", {5, 4}, {0});
 }
 
 BOOST_AUTO_TEST_CASE(var__greater_than) {
@@ -252,9 +252,9 @@ BOOST_AUTO_TEST_CASE(var__greater_than) {
         program = bfg.get_code();
     }
 
-    bfg_check(program, "4 > 5 == 0", {4, 5}, {0});
-    bfg_check(program, "5 > 5 == 0", {5, 5}, {0});
-    bfg_check(program, "5 > 4 == 1", {5, 4}, {1});
+    bfg_check(program, "(4 > 5) == 0", {4, 5}, {0});
+    bfg_check(program, "(5 > 5) == 0", {5, 5}, {0});
+    bfg_check(program, "(5 > 4) == 1", {5, 4}, {1});
 }
 
 BOOST_AUTO_TEST_CASE(var__greater_equal) {
@@ -275,7 +275,105 @@ BOOST_AUTO_TEST_CASE(var__greater_equal) {
         program = bfg.get_code();
     }
 
-    bfg_check(program, "4 >= 5 == 0", {4, 5}, {0});
-    bfg_check(program, "5 >= 5 == 1", {5, 5}, {1});
-    bfg_check(program, "5 >= 4 == 1", {5, 4}, {1});
+    bfg_check(program, "(4 >= 5) == 0", {4, 5}, {0});
+    bfg_check(program, "(5 >= 5) == 1", {5, 5}, {1});
+    bfg_check(program, "(5 >= 4) == 1", {5, 4}, {1});
+}
+
+BOOST_AUTO_TEST_CASE(var__equal) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        auto b = bfg.new_var("b");
+        a->read_input();
+        b->read_input();
+        a->equal(*b);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "(2 == 2) == 1", {2, 2}, {1});
+    bfg_check(program, "(3 == 4) == 0", {3, 4}, {0});
+    bfg_check(program, "(5 == 4) == 0", {5, 4}, {0});
+    bfg_check(program, "(0 == 0) == 1", {0, 0}, {1});
+}
+
+BOOST_AUTO_TEST_CASE(var__not_equal) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        auto b = bfg.new_var("b");
+        a->read_input();
+        b->read_input();
+        a->not_equal(*b);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "(2 != 2) == 0", {2, 2}, {0});
+    bfg_check(program, "(3 != 4) == 1", {3, 4}, {1});
+    bfg_check(program, "(5 != 4) == 1", {5, 4}, {1});
+    bfg_check(program, "(0 != 0) == 0", {0, 0}, {0});
+}
+
+BOOST_AUTO_TEST_CASE(example_ggt) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        auto b = bfg.new_var("b");
+        a->read_input();
+        b->read_input();
+
+        auto eq = bfg.new_var("eq");
+        eq->copy(*a);
+        eq->not_equal(*b);
+        bfg.while_begin(*eq); // a != b
+        {
+            auto lt = bfg.new_var("lt");
+            lt->copy(*a);
+            lt->lower_than(*b);
+            bfg.if_begin(*lt); // a < b
+            {
+                b->subtract(*a);
+            }
+            bfg.if_end(*lt);
+
+            auto ge = bfg.new_var("ge");
+            ge->bool_not(*lt);
+            bfg.if_begin(*ge); // a > b
+            {
+                a->subtract(*b);
+            }
+            bfg.if_end(*ge);
+
+            eq->copy(*a);
+            eq->not_equal(*b);
+        }
+        bfg.while_end(*eq);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check     (program, "ggt(24,   16)   == 8",   {24,   16},   {8});
+    bfg_check     (program, "ggt(128,  42)   == 2",   {128,  42},   {2});
+    bfg_check     (program, "ggt(9,    13)   == 1",   {9,    13},   {1});
+    bfg_check<int>(program, "ggt(3528, 3780) == 252", {3528, 3780}, {252});
 }

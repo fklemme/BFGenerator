@@ -15,8 +15,8 @@ void bfg_check(const std::string &program, const std::string &message,
 
     BOOST_CHECK_MESSAGE(std::equal(output.begin(), output.end(), test.recv_output().begin()), message);
     // Ensure correct SP movement
-    BOOST_CHECK(test.get_sp_position() == 0);
-    BOOST_CHECK(test.get_current_mem() == 1);
+    BOOST_CHECK(test.get_memory().at(0) == 1);
+    BOOST_CHECK(test.get_stack_pointer() == 0);
 }
 
 BOOST_AUTO_TEST_CASE(var__add_unsigned) {

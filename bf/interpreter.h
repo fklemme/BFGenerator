@@ -72,12 +72,12 @@ namespace bf {
         }
 
         // Debug and testing
-        std::size_t get_sp_position() const {
-            return m_stack_pointer;
+        const std::vector<memory_type> get_memory() const {
+            return m_memory;
         }
 
-        memory_type get_current_mem() const {
-            return m_memory.at(m_stack_pointer);
+        std::size_t get_stack_pointer() const {
+            return m_stack_pointer;
         }
 
     private:

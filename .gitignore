@@ -1,4 +1,8 @@
-Ueb3Aufg2.bf
+# Generated files
 bfg_Ueb3Aufg2
-*.o
 test_generator
+*.o
+*.bf
+
+# Temp files
+.*.swp

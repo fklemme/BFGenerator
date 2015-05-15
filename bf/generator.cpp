@@ -90,7 +90,7 @@ namespace bf {
                 unsigned f = std::sqrt(c);
                 m_out.emplace_back(move_sp_to(*pc[0]),
                         "[-]>" + std::string(c / f, '+') + "[<" + std::string(f, '+') + ">-]<" + std::string(c % f, '+'),
-                        "Set char value '" + std::to_string((unsigned) c) + "' to '" + pc[0]->m_name + "'",
+                        "Set '" + pc[0]->m_name + "' to " + std::to_string((unsigned) c),
                         m_indention);
             }
             pc[0]->write_output();

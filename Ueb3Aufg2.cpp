@@ -12,10 +12,10 @@ int main(int argc, char **argv) {
         input->read_input();
         bfg.while_begin(*input);
         {
-            auto cmp_res = bfg.new_var("cmp_res");
-            cmp_res->copy(*input);
-            cmp_res->greater_equal(*ascii_zero);
-            bfg.if_begin(*cmp_res);
+            auto is_number = bfg.new_var("is_number");
+            is_number->copy(*input);
+            is_number->greater_equal(*ascii_zero);
+            bfg.if_begin(*is_number);
             {
                 // Add input to variable
                 var.multiply(10);
@@ -24,16 +24,16 @@ int main(int argc, char **argv) {
                 // Read next char
                 input->read_input();
             }
-            bfg.if_end(*cmp_res);
+            bfg.if_end(*is_number);
 
-            auto not_res = bfg.new_var("not_res");
-            not_res->bool_not(*cmp_res);
-            bfg.if_begin(*not_res);
+            auto no_number = bfg.new_var("no_number");
+            no_number->bool_not(*is_number);
+            bfg.if_begin(*no_number);
             {
                 // End input cols
                 input->set(0);
             }
-            bfg.if_end(*not_res);
+            bfg.if_end(*no_number);
         }
         bfg.while_end(*input);
     };

@@ -30,11 +30,11 @@ namespace bf {
             // TODO: Check if loop_stack is completely unwinded.
         }
 
-        void set_input(const std::vector<memory_type> &input) {
+        void send_input(const std::vector<memory_type> &input) {
             std::copy(input.begin(), input.end(), std::back_inserter(m_input_buffer));
         }
         
-        std::vector<memory_type> get_output() const {
+        std::vector<memory_type> recv_output() const {
             std::vector<memory_type> result;
             std::swap(m_output_buffer, result);
             return result;

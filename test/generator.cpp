@@ -187,3 +187,95 @@ BOOST_AUTO_TEST_CASE(var__bool_not) {
     bfg_check(program, "!1 == 0", {1}, {0});
     bfg_check(program, "!7 == 0", {7}, {0});
 }
+
+BOOST_AUTO_TEST_CASE(var__lower_than) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        auto b = bfg.new_var("b");
+        a->read_input();
+        b->read_input();
+        a->lower_than(*b);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "4 < 5 == 1", {4, 5}, {1});
+    bfg_check(program, "5 < 5 == 0", {5, 5}, {0});
+    bfg_check(program, "5 < 4 == 0", {5, 4}, {0});
+}
+
+BOOST_AUTO_TEST_CASE(var__lower_equal) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        auto b = bfg.new_var("b");
+        a->read_input();
+        b->read_input();
+        a->lower_equal(*b);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "4 <= 5 == 1", {4, 5}, {1});
+    bfg_check(program, "5 <= 5 == 1", {5, 5}, {1});
+    bfg_check(program, "5 <= 4 == 0", {5, 4}, {0});
+}
+
+BOOST_AUTO_TEST_CASE(var__greater_than) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        auto b = bfg.new_var("b");
+        a->read_input();
+        b->read_input();
+        a->greater_than(*b);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "4 > 5 == 0", {4, 5}, {0});
+    bfg_check(program, "5 > 5 == 0", {5, 5}, {0});
+    bfg_check(program, "5 > 4 == 1", {5, 4}, {1});
+}
+
+BOOST_AUTO_TEST_CASE(var__greater_equal) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        auto b = bfg.new_var("b");
+        a->read_input();
+        b->read_input();
+        a->greater_equal(*b);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "4 >= 5 == 0", {4, 5}, {0});
+    bfg_check(program, "5 >= 5 == 1", {5, 5}, {1});
+    bfg_check(program, "5 >= 4 == 1", {5, 4}, {1});
+}

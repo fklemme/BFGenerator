@@ -27,3 +27,4 @@ test_generator: test/generator.o bf/generator.o
 clean:
 	rm -f bfg_Ueb3Aufg2 test_generator
 	rm -f *.o bf/*.o test/*.o
+	rm -f *.bf

@@ -328,6 +328,24 @@ BOOST_AUTO_TEST_CASE(var__not_equal) {
     bfg_check(program, "(0 != 0) == 0", {0, 0}, {0});
 }
 
+BOOST_AUTO_TEST_CASE(generator__print) {
+    const std::string test_str = "Test_123";
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        bfg.print(test_str);
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    std::vector<char> output(test_str.begin(), test_str.end());
+    bfg_check(program, "print('" + test_str + "')", {}, output);
+}
+
 BOOST_AUTO_TEST_CASE(example_ggt) {
     std::string program;
     {

@@ -1,6 +1,7 @@
 #include "generator.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
@@ -81,10 +82,18 @@ namespace bf {
                 m_indention);
 
         // Print text (to be optimized?)
-        auto pc = new_var("_print_char");
-        for (char c : text) {
-            pc->set(c);
-            pc->write_output();
+        auto pc = new_var_array<2>("_print");
+        for (unsigned char c : text) {
+            if (c < 32)
+                pc[0]->set(c);
+            else {
+                unsigned f = std::sqrt(c);
+                m_out.emplace_back(move_sp_to(*pc[0]),
+                        "[-]>" + std::string(c / f, '+') + "[<" + std::string(f, '+') + ">-]<" + std::string(c % f, '+'),
+                        "Set char value '" + std::to_string((unsigned) c) + "' to '" + pc[0]->m_name + "'",
+                        m_indention);
+            }
+            pc[0]->write_output();
         }
     }
 

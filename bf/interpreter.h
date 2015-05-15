@@ -1,5 +1,7 @@
 #pragma once
 
+#include <deque>
+#include <stdexcept>
 #include <iterator>
 #include <map>
 #include <string>
@@ -52,8 +54,10 @@ namespace bf {
                           break;
                 case '.': m_output_buffer.push_back(m_memory.at(m_stack_pointer));
                           break;
-                case ',': m_memory.at(m_stack_pointer) = m_input_buffer.at(0); // throws
-                          m_input_buffer.erase(m_input_buffer.begin());
+                case ',': if (m_input_buffer.empty())
+                              throw std::runtime_error("Waiting for input...");
+                          m_memory.at(m_stack_pointer) = m_input_buffer.front();
+                          m_input_buffer.pop_front();
                           break;
                 case '[': if (m_memory.at(m_stack_pointer) == 0)
                               m_instruction_pointer = m_loop_forward.at(m_instruction_pointer);
@@ -83,7 +87,7 @@ namespace bf {
         std::size_t                        m_stack_pointer;
         std::map<std::size_t, std::size_t> m_loop_forward;
         std::map<std::size_t, std::size_t> m_loop_back;
-        std::vector<memory_type>           m_input_buffer;
+        std::deque<memory_type>            m_input_buffer;
         mutable std::vector<memory_type>   m_output_buffer;
     };
 

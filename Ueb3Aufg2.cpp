@@ -24,16 +24,12 @@ int main(int argc, char **argv) {
                 // Read next char
                 input->read_input();
             }
-            bfg.if_end(*is_number);
-
-            auto no_number = bfg.new_var("no_number");
-            no_number->bool_not(*is_number);
-            bfg.if_begin(*no_number);
+            bfg.else_begin();
             {
                 // End input cols
                 input->set(0);
             }
-            bfg.if_end(*no_number);
+            bfg.if_end();
         }
         bfg.while_end(*input);
     };
@@ -81,18 +77,15 @@ int main(int argc, char **argv) {
                 bfg.print("_");
                 count->increment();
             }
-            bfg.if_end(*cmp_res);
 
             // Else (count >= underscores)
-            auto not_res = bfg.new_var("not_res");
-            not_res->bool_not(*cmp_res);
-            bfg.if_begin(*not_res);
+            bfg.else_begin();
             {
                 // Print "X" and reset count
                 bfg.print("X");
                 count->set(0);
             }
-            bfg.if_end(*not_res);
+            bfg.if_end();
 
             j->decrement();
         }

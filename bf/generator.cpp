@@ -1,6 +1,7 @@
 #include "generator.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <iomanip>
 #include <sstream>
@@ -12,6 +13,7 @@ namespace bf {
         // Check variable name
         if (var_name.compare("") != 0) {
             // FK: No generic lambdas in C++11 :/
+            // TODO: Name conflicts are no longer a problem, right? This could be removed!
             if (std::any_of(m_pos_to_var.begin(), m_pos_to_var.end(),
                         [&var_name](decltype(*m_pos_to_var.begin()) &kv) {return var_name.compare(kv.second->m_name) == 0;}))
                 throw std::logic_error("A variable named '" + var_name + "' already exists!");
@@ -54,20 +56,55 @@ namespace bf {
     }
 
     void generator::if_begin(const var &v) {
-        if_var().copy(v);
-        m_out.emplace_back(move_sp_to(if_var()),
+        auto if_else = new_var_array<3>("_if_else_" + v.m_name);
+        if_else[1]->set(1);
+        if_else[2]->copy(v);
+        // Do a quick, 'not'-like operation to set if/else values.
+        m_out.emplace_back(move_sp_to(*if_else[2]),
+                "[<<+>->[-]]", // If (v > 0) change {0, 1, v} to {1, 0, v}.
+                "Initialize if/else values for '" + v.m_name + "'",
+                m_indention);
+        m_if_else_stack.push_back({if_else[1], if_else[0]});
+
+        m_out.emplace_back(move_sp_to(*if_else[0]),
                 "[",
-                "If '" + v.m_name + "' is not 0",
+                "If '" + if_else[0]->m_name + "' is not 0",
                 m_indention++);
     }
 
-    void generator::if_end(const var &v) {
-        // Ensure leaving the 'if'
-        if_var().set(0);
-        m_out.emplace_back(move_sp_to(if_var()),
+    void generator::else_begin() {
+        if (m_if_else_stack.empty())
+            throw std::logic_error("Else without if!");
+
+        auto else_if = m_if_else_stack.back(); // Note the inverse order of if/else!
+        assert(else_if.size() == 2); // Double 'else_begin'?
+        m_if_else_stack.back().pop_back(); // Pop 'if' from stack, exposing 'else' for 'end_if'
+
+        // Ensure leaving the if
+        else_if[1]->set(0);
+        m_out.emplace_back(move_sp_to(*else_if[1]),
                 "]",
-                "End if '" + v.m_name + "'",
+                "End if '" + else_if[1]->m_name + "'",
                 --m_indention);
+
+        m_out.emplace_back(move_sp_to(*else_if[0]),
+                "[",
+                "Else '" + else_if[0]->m_name + "' is not 0",
+                m_indention++);
+    }
+
+    void generator::if_end() {
+        if (m_if_else_stack.empty())
+            throw std::logic_error("End if without if!");
+        auto if_or_else = m_if_else_stack.back().back();
+
+        // Ensure leaving the if/else
+        if_or_else->set(0);
+        m_out.emplace_back(move_sp_to(*if_or_else),
+                "]",
+                "End if/else '" + if_or_else->m_name + "'",
+                --m_indention);
+        m_if_else_stack.pop_back();
     }
 
     void generator::print(const std::string &text) {
@@ -90,7 +127,7 @@ namespace bf {
                 unsigned f = std::sqrt(c);
                 m_out.emplace_back(move_sp_to(*pc[0]),
                         "[-]>" + std::string(c / f, '+') + "[<" + std::string(f, '+') + ">-]<" + std::string(c % f, '+'),
-                        "Set '" + pc[0]->m_name + "' to " + std::to_string((unsigned) c),
+                        "Operation sequence to set '" + pc[0]->m_name + "' to " + std::to_string((unsigned) c),
                         m_indention);
             }
             pc[0]->write_output();
@@ -160,12 +197,6 @@ namespace bf {
             return std::string(-dist, '<');
     }
 
-    var& generator::if_var() {
-        if (m_if_var == nullptr)
-            m_if_var = new_var("_if_var");
-        return *m_if_var;
-    }
-
     void var::increment() {
         m_gen.m_out.emplace_back(m_gen.move_sp_to(*this),
                 "+",
@@ -209,8 +240,10 @@ namespace bf {
         auto temp = m_gen.new_var("_multiply");
         temp->move(*this);
         m_gen.while_begin(*temp);
-        this->add(value);
-        temp->decrement();
+        {
+            this->add(value);
+            temp->decrement();
+        }
         m_gen.while_end(*temp);
     }
 
@@ -235,8 +268,10 @@ namespace bf {
 
         this->set(0);
         m_gen.while_begin(v);
-        this->increment();
-        v.decrement();
+        {
+            this->increment();
+            v.decrement();
+        }
         m_gen.while_end(v);
     }
 
@@ -250,9 +285,11 @@ namespace bf {
         auto temp = m_gen.new_var("_copy");
         this->set(0);
         m_gen.while_begin(v);
-        this->increment();
-        temp->increment();
-        v_ptr->decrement();
+        {
+            this->increment();
+            temp->increment();
+            v_ptr->decrement();
+        }
         m_gen.while_end(v);
         // Restore v
         v_ptr->move(*temp);
@@ -267,9 +304,11 @@ namespace bf {
         auto v_ptr = const_cast<var*>(&v);
         auto temp = m_gen.new_var("_add");
         m_gen.while_begin(v);
-        this->increment();
-        temp->increment();
-        v_ptr->decrement();
+        {
+            this->increment();
+            temp->increment();
+            v_ptr->decrement();
+        }
         m_gen.while_end(v);
         // Restore v
         v_ptr->move(*temp);
@@ -284,9 +323,11 @@ namespace bf {
         auto v_ptr = const_cast<var*>(&v);
         auto temp = m_gen.new_var("_subtract");
         m_gen.while_begin(v);
-        this->decrement();
-        temp->increment();
-        v_ptr->decrement();
+        {
+            this->decrement();
+            temp->increment();
+            v_ptr->decrement();
+        }
         m_gen.while_end(v);
         // Restore v
         v_ptr->move(*temp);
@@ -300,8 +341,10 @@ namespace bf {
         auto temp = m_gen.new_var("_multiply");
         temp->move(*this);
         m_gen.while_begin(*temp);
-        this->add(v);
-        temp->decrement();
+        {
+            this->add(v);
+            temp->decrement();
+        }
         m_gen.while_end(*temp);
     }
 
@@ -309,10 +352,19 @@ namespace bf {
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug) Set '" + m_name + "' to not '" + v.m_name + "'",
                 m_gen.m_indention);
-        this->set(1);
-        m_gen.if_begin(v);
-        this->set(0);
-        m_gen.if_end(v);
+
+        // array = {1 (result), a}
+        auto array = m_gen.new_var_array<2>("_not");
+        array[0]->set(1);
+        array[1]->copy(v);
+
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[1]),
+                "[<->[-]]", // If (a > 0), set result to 0 and clear a.
+                "Compare operation sequence for 'not'",
+                m_gen.m_indention);
+
+        // Move result to *this
+        this->move(*array[0]);
     }
 
     void var::lower_than(const var &v) {
@@ -344,7 +396,7 @@ namespace bf {
 
     void var::lower_equal(const var &v) {
         // (this <= v) == (this < v + 1)
-        auto v_1 = m_gen.new_var("_" + v.m_name + "_plus_1");
+        auto v_1 = m_gen.new_var("_1_plus_" + v.m_name);
         v_1->copy(v);
         v_1->increment();
         this->lower_than(*v_1);
@@ -352,7 +404,7 @@ namespace bf {
 
     void var::greater_than(const var &v) {
         // (this > v) == (v < this)
-        auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
+        auto v_copy = m_gen.new_var("_copy_" + v.m_name);
         v_copy->copy(v);
         v_copy->lower_than(*this);
         this->move(*v_copy);
@@ -360,7 +412,7 @@ namespace bf {
 
     void var::greater_equal(const var &v) {
         // (this >= v) == (v <= this)
-        auto v_copy = m_gen.new_var("_" + v.m_name + "_copy");
+        auto v_copy = m_gen.new_var("_copy_" + v.m_name);
         v_copy->copy(v);
         v_copy->lower_equal(*this);
         this->move(*v_copy);

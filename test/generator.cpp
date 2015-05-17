@@ -328,6 +328,62 @@ BOOST_AUTO_TEST_CASE(var__not_equal) {
     bfg_check(program, "(0 != 0) == 0", {0, 0}, {0});
 }
 
+BOOST_AUTO_TEST_CASE(generator__if) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        // Simple "bool()" function
+        auto a = bfg.new_var("a");
+        a->read_input();
+        bfg.if_begin(*a);
+        {
+            a->set(1);
+        }
+        bfg.if_end();
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "bool(0) == 0", {0}, {0});
+    bfg_check(program, "bool(1) == 1", {1}, {1});
+    bfg_check(program, "bool(5) == 1", {5}, {1});
+}
+
+BOOST_AUTO_TEST_CASE(generator__else) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        // Simple "not()" function
+        auto a = bfg.new_var("a");
+        a->read_input();
+        bfg.if_begin(*a);
+        {
+            a->set(0);
+        }
+        bfg.else_begin();
+        {
+            a->set(1);
+        }
+        bfg.if_end();
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "not(0) == 1", {0}, {1});
+    bfg_check(program, "not(1) == 0", {1}, {0});
+    bfg_check(program, "not(5) == 0", {5}, {0});
+}
+
 BOOST_AUTO_TEST_CASE(generator__print) {
     const std::string test_str = "Test_123";
     std::string program;
@@ -369,15 +425,11 @@ BOOST_AUTO_TEST_CASE(example_ggt) {
             {
                 b->subtract(*a);
             }
-            bfg.if_end(*lt);
-
-            auto ge = bfg.new_var("ge");
-            ge->bool_not(*lt);
-            bfg.if_begin(*ge); // a > b
+            bfg.else_begin();
             {
                 a->subtract(*b);
             }
-            bfg.if_end(*ge);
+            bfg.if_end();
 
             neq->copy(*a);
             neq->not_equal(*b);

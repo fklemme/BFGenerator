@@ -42,7 +42,8 @@ namespace bf {
         void while_end(const var&);
 
         void if_begin(const var&);
-        void if_end(const var&);
+        void else_begin();
+        void if_end();
 
         void print(const std::string &text);
 
@@ -53,15 +54,14 @@ namespace bf {
     private:
         // Helper
         std::string move_sp_to(const var&);
-        var& if_var();
 
         // Output format: sp moves, operations, comment, indentation
         std::vector<std::tuple<std::string, std::string, std::string, unsigned>> m_out;
-        unsigned m_indention = 0;
+        unsigned                                                                 m_indention = 0;
 
-        std::map<unsigned, var*> m_pos_to_var;
-        unsigned m_stackpos = 0;
-        var_ptr m_if_var;
+        std::map<unsigned, var*>          m_pos_to_var;
+        unsigned                          m_stackpos = 0;
+        std::vector<std::vector<var_ptr>> m_if_else_stack;
     };
 
     class var {
@@ -98,9 +98,9 @@ namespace bf {
         var(generator&, const std::string& var_name, unsigned stack_pos);
         var(const var&) = delete;
 
-        generator& m_gen;
+        generator&        m_gen;
         const std::string m_name;
-        const unsigned m_pos;
+        const unsigned    m_pos;
     };
 
 }

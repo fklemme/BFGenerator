@@ -52,16 +52,18 @@ namespace bf {
         std::string get_minimal_code() const;
 
     private:
-        // Helper
+        // Helper function
         std::string move_sp_to(const var&);
 
         // Output format: sp moves, operations, comment, indentation
         std::vector<std::tuple<std::string, std::string, std::string, unsigned>> m_out;
         unsigned                                                                 m_indention = 0;
+        unsigned                                                                 m_debug_nr = 0;
 
+        // TODO: Is this map really needed?
         std::map<unsigned, var*>          m_pos_to_var;
         unsigned                          m_stackpos = 0;
-        std::vector<std::vector<var_ptr>> m_if_else_stack;
+        std::vector<std::vector<var_ptr>> m_else_if_stack;
     };
 
     class var {

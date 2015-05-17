@@ -10,17 +10,12 @@
 namespace bf {
 
     std::shared_ptr<var> generator::new_var(std::string var_name, unsigned init_value, unsigned pref_stack_pos) {
-        // Check variable name
+        // Check variable name for Brainfuck operators
         if (var_name.compare("") != 0) {
-            // FK: No generic lambdas in C++11 :/
-            // TODO: Name conflicts are no longer a problem, right? This could be removed!
-            if (std::any_of(m_pos_to_var.begin(), m_pos_to_var.end(),
-                        [&var_name](decltype(*m_pos_to_var.begin()) &kv) {return var_name.compare(kv.second->m_name) == 0;}))
-                throw std::logic_error("A variable named '" + var_name + "' already exists!");
-
             for (char c : var_name)
                 if (std::find(bf_ops.begin(), bf_ops.end(), c) != bf_ops.end())
-                    throw std::logic_error("Variable name must not contain brainfuck operators! (" + bf_ops + ")");
+                    throw std::logic_error("Variable name must not contain brainfuck operators!"
+                            " (" + var_name + ")");
         }
 
         // Find free memory (to be optimized?)
@@ -30,10 +25,11 @@ namespace bf {
 
         // Assign variable name, if not set
         if (var_name.compare("") == 0)
-            var_name = "_" + std::to_string(stack_pos);
+            var_name = "_mem_addr_" + std::to_string(stack_pos);
 
         m_out.emplace_back("", "", // NOP
-                "(Debug) Declare variable '" + var_name + "' at position " + std::to_string(stack_pos),
+                "(Debug " + std::to_string(m_debug_nr++) + ")"
+                " Declare variable '" + var_name + "' at position " + std::to_string(stack_pos),
                 m_indention);
         
         auto new_var = std::shared_ptr<var>(new var(*this, var_name, stack_pos));
@@ -61,10 +57,10 @@ namespace bf {
         if_else[2]->copy(v);
         // Do a quick, 'not'-like operation to set if/else values.
         m_out.emplace_back(move_sp_to(*if_else[2]),
-                "[<<+>->[-]]", // If (v > 0) change {0, 1, v} to {1, 0, v}.
+                "[<<+>->[-]]", // If (v > 0) change {0, 1, v} to {1, 0, 0}.
                 "Initialize if/else values for '" + v.m_name + "'",
                 m_indention);
-        m_if_else_stack.push_back({if_else[1], if_else[0]});
+        m_else_if_stack.push_back({if_else[1], if_else[0]}); // Note the inverse order of if/else!
 
         m_out.emplace_back(move_sp_to(*if_else[0]),
                 "[",
@@ -73,12 +69,12 @@ namespace bf {
     }
 
     void generator::else_begin() {
-        if (m_if_else_stack.empty())
+        if (m_else_if_stack.empty())
             throw std::logic_error("Else without if!");
 
-        auto else_if = m_if_else_stack.back(); // Note the inverse order of if/else!
+        auto else_if = m_else_if_stack.back();
         assert(else_if.size() == 2); // Double 'else_begin'?
-        m_if_else_stack.back().pop_back(); // Pop 'if' from stack, exposing 'else' for 'end_if'
+        m_else_if_stack.back().pop_back(); // Pop 'if' from stack, exposing 'else' for 'end_if'
 
         // Ensure leaving the if
         else_if[1]->set(0);
@@ -94,9 +90,9 @@ namespace bf {
     }
 
     void generator::if_end() {
-        if (m_if_else_stack.empty())
+        if (m_else_if_stack.empty())
             throw std::logic_error("End if without if!");
-        auto if_or_else = m_if_else_stack.back().back();
+        auto if_or_else = m_else_if_stack.back().back();
 
         // Ensure leaving the if/else
         if_or_else->set(0);
@@ -104,7 +100,7 @@ namespace bf {
                 "]",
                 "End if/else '" + if_or_else->m_name + "'",
                 --m_indention);
-        m_if_else_stack.pop_back();
+        m_else_if_stack.pop_back();
     }
 
     void generator::print(const std::string &text) {
@@ -115,7 +111,7 @@ namespace bf {
         std::replace(comment_text.begin(), comment_text.end(), '\n', '_');
 
         m_out.emplace_back("", "", // NOP
-                "(Debug) Print '" + comment_text + "'",
+                "(Debug " + std::to_string(m_debug_nr++) + ") Print '" + comment_text + "'",
                 m_indention);
 
         // Print text (to be optimized?)
@@ -126,8 +122,10 @@ namespace bf {
             else {
                 unsigned f = std::sqrt(c);
                 m_out.emplace_back(move_sp_to(*pc[0]),
-                        "[-]>" + std::string(c / f, '+') + "[<" + std::string(f, '+') + ">-]<" + std::string(c % f, '+'),
-                        "Operation sequence to set '" + pc[0]->m_name + "' to " + std::to_string((unsigned) c),
+                        "[-]>" + std::string(c / f, '+') +
+                        "[<" + std::string(f, '+') + ">-]<" + std::string(c % f, '+'),
+                        "Operation sequence to set '" + pc[0]->m_name + "'"
+                        " to " + std::to_string((unsigned) c),
                         m_indention);
             }
             pc[0]->write_output();
@@ -234,7 +232,8 @@ namespace bf {
 
     void var::multiply(unsigned value) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Multiply '" + m_name + "' by " + std::to_string(value),
+                "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+                " Multiply '" + m_name + "' by " + std::to_string(value),
                 m_gen.m_indention);
 
         auto temp = m_gen.new_var("_multiply");
@@ -263,7 +262,8 @@ namespace bf {
 
     void var::move(var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Move from '" + v.m_name + "' to '" + m_name + "'",
+                "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+                " Move from '" + v.m_name + "' to '" + m_name + "'",
                 m_gen.m_indention);
 
         this->set(0);
@@ -277,7 +277,8 @@ namespace bf {
 
     void var::copy(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Copy from '" + v.m_name + "' to '" + m_name + "'",
+                "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+                " Copy from '" + v.m_name + "' to '" + m_name + "'",
                 m_gen.m_indention);
 
         // Break v temporarily
@@ -297,7 +298,8 @@ namespace bf {
 
     void var::add(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Add '" + v.m_name + "' to '" + m_name + "'",
+                "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+                " Add '" + v.m_name + "' to '" + m_name + "'",
                 m_gen.m_indention);
 
         // Break v temporarily
@@ -316,7 +318,8 @@ namespace bf {
 
     void var::subtract(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Subtract '" + v.m_name + "' from '" + m_name + "'",
+                "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+                " Subtract '" + v.m_name + "' from '" + m_name + "'",
                 m_gen.m_indention);
 
         // Break v temporarily
@@ -335,7 +338,8 @@ namespace bf {
 
     void var::multiply(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Multiply '" + v.m_name + "' with '" + m_name + "'",
+                "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+                " Multiply '" + v.m_name + "' with '" + m_name + "'",
                 m_gen.m_indention);
 
         auto temp = m_gen.new_var("_multiply");
@@ -350,7 +354,8 @@ namespace bf {
 
     void var::bool_not(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Set '" + m_name + "' to not '" + v.m_name + "'",
+                "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+                " Set '" + m_name + "' to not '" + v.m_name + "'",
                 m_gen.m_indention);
 
         // array = {1 (result), a}
@@ -369,7 +374,8 @@ namespace bf {
 
     void var::lower_than(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Compare '" + m_name + "' lower than '" + v.m_name + "'",
+                "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+                " Compare '" + m_name + "' lower than '" + v.m_name + "'",
                 m_gen.m_indention);
 
         // Similar to http://stackoverflow.com/a/13327857
@@ -420,7 +426,8 @@ namespace bf {
 
     void var::equal(const var &v) {
         m_gen.m_out.emplace_back("", "", // NOP
-                "(Debug) Compare '" + m_name + "' equal to '" + v.m_name + "'",
+                "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+                " Compare '" + m_name + "' equal to '" + v.m_name + "'",
                 m_gen.m_indention);
 
         // Similar to http://stackoverflow.com/a/13327857

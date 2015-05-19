@@ -261,6 +261,7 @@ namespace bf {
     }
 
     void var::move(var &v) {
+        assert(&v != this);
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
                 " Move from '" + v.m_name + "' to '" + m_name + "'",
@@ -276,6 +277,7 @@ namespace bf {
     }
 
     void var::copy(const var &v) {
+        assert(&v != this);
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
                 " Copy from '" + v.m_name + "' to '" + m_name + "'",
@@ -297,6 +299,7 @@ namespace bf {
     }
 
     void var::add(const var &v) {
+        assert(&v != this); // TODO: Implement this case?
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
                 " Add '" + v.m_name + "' to '" + m_name + "'",
@@ -317,6 +320,7 @@ namespace bf {
     }
 
     void var::subtract(const var &v) {
+        assert(&v != this); // TODO: Implement this case?
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
                 " Subtract '" + v.m_name + "' from '" + m_name + "'",
@@ -337,6 +341,7 @@ namespace bf {
     }
 
     void var::multiply(const var &v) {
+        assert(&v != this); // TODO: Implement this case?
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
                 " Multiply '" + v.m_name + "' with '" + m_name + "'",
@@ -353,6 +358,7 @@ namespace bf {
     }
 
     void var::bool_not(const var &v) {
+        assert(&v != this); // TODO: Implement this case?
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
                 " Set '" + m_name + "' to not '" + v.m_name + "'",
@@ -373,6 +379,7 @@ namespace bf {
     }
 
     void var::lower_than(const var &v) {
+        assert(&v != this); // TODO: Implement this case?
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
                 " Compare '" + m_name + "' lower than '" + v.m_name + "'",
@@ -425,6 +432,7 @@ namespace bf {
     }
 
     void var::equal(const var &v) {
+        assert(&v != this); // TODO: Implement this case?
         m_gen.m_out.emplace_back("", "", // NOP
                 "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
                 " Compare '" + m_name + "' equal to '" + v.m_name + "'",
@@ -454,6 +462,7 @@ namespace bf {
     }
 
     void var::not_equal(const var &v) {
+        assert(&v != this); // TODO: Implement this case?
         auto temp = m_gen.new_var("_equal");
         temp->copy(*this);
         temp->equal(v);

@@ -5,7 +5,7 @@
 CXXFLAGS += -std=c++11 -Wall
 TESTLIBS += -lboost_unit_test_framework
 
-
+.PHONY: all
 all: Ueb3Aufg2.bf
 
 # Example Brainfuck program

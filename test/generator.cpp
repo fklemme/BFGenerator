@@ -19,6 +19,7 @@ void bfg_check(const std::string &program, const std::string &message,
     BOOST_CHECK(test.get_stack_pointer() == 0);
 }
 
+// ----- bf::var::add(unsigned) ------------------------------------------------
 BOOST_AUTO_TEST_CASE(var__add_unsigned) {
     std::string program;
     {
@@ -39,6 +40,7 @@ BOOST_AUTO_TEST_CASE(var__add_unsigned) {
     bfg_check(program, "7 + 3 == 10", {7}, {10});
 }
 
+// ----- bf::var::subtract(unsigned) -------------------------------------------
 BOOST_AUTO_TEST_CASE(var__subtract_unsigned) {
     std::string program;
     {
@@ -59,6 +61,7 @@ BOOST_AUTO_TEST_CASE(var__subtract_unsigned) {
     bfg_check(program, "10 - 2 == 8", {10}, {8});
 }
 
+// ----- bf::var::multiply(unsigned) -------------------------------------------
 BOOST_AUTO_TEST_CASE(var__multiply_unsigned) {
     std::string program;
     {
@@ -79,6 +82,7 @@ BOOST_AUTO_TEST_CASE(var__multiply_unsigned) {
     bfg_check(program, "8 * 3 == 24", {8}, {24});
 }
 
+// ----- bf::var::copy(const var&) ---------------------------------------------
 BOOST_AUTO_TEST_CASE(var__copy) {
     std::string program;
     {
@@ -99,6 +103,7 @@ BOOST_AUTO_TEST_CASE(var__copy) {
     bfg_check(program, "Simple copy instruction", {5}, {5});
 }
 
+// ----- bf::var::add(const var&) ----------------------------------------------
 BOOST_AUTO_TEST_CASE(var__add) {
     std::string program;
     {
@@ -121,6 +126,7 @@ BOOST_AUTO_TEST_CASE(var__add) {
     bfg_check(program, "5 + 8 == 13", {5, 8}, {13});
 }
 
+// ----- bf::var::subtract(const var&) -----------------------------------------
 BOOST_AUTO_TEST_CASE(var__subtract) {
     std::string program;
     {
@@ -143,7 +149,7 @@ BOOST_AUTO_TEST_CASE(var__subtract) {
     bfg_check(program, "20 - 7 == 13", {20, 7}, {13});
 }
 
-
+// ----- bf::var::multiply(const var&) -----------------------------------------
 BOOST_AUTO_TEST_CASE(var__multiply) {
     std::string program;
     {
@@ -166,6 +172,7 @@ BOOST_AUTO_TEST_CASE(var__multiply) {
     bfg_check(program, "4 * 8 == 32", {4, 8}, {32});
 }
 
+// ----- bf::var::bool_not(const var&) -----------------------------------------
 BOOST_AUTO_TEST_CASE(var__bool_not) {
     std::string program;
     {
@@ -188,6 +195,7 @@ BOOST_AUTO_TEST_CASE(var__bool_not) {
     bfg_check(program, "!7 == 0", {7}, {0});
 }
 
+// ----- bf::var::lower_than(const var&) ---------------------------------------
 BOOST_AUTO_TEST_CASE(var__lower_than) {
     std::string program;
     {
@@ -211,6 +219,7 @@ BOOST_AUTO_TEST_CASE(var__lower_than) {
     bfg_check(program, "(5 < 4) == 0", {5, 4}, {0});
 }
 
+// ----- bf::var::lower_equal(const var&) --------------------------------------
 BOOST_AUTO_TEST_CASE(var__lower_equal) {
     std::string program;
     {
@@ -234,6 +243,7 @@ BOOST_AUTO_TEST_CASE(var__lower_equal) {
     bfg_check(program, "(5 <= 4) == 0", {5, 4}, {0});
 }
 
+// ----- bf::var::greater_than(const var&) -------------------------------------
 BOOST_AUTO_TEST_CASE(var__greater_than) {
     std::string program;
     {
@@ -257,6 +267,7 @@ BOOST_AUTO_TEST_CASE(var__greater_than) {
     bfg_check(program, "(5 > 4) == 1", {5, 4}, {1});
 }
 
+// ----- bf::var::greater_equal(const var&) ------------------------------------
 BOOST_AUTO_TEST_CASE(var__greater_equal) {
     std::string program;
     {
@@ -280,6 +291,7 @@ BOOST_AUTO_TEST_CASE(var__greater_equal) {
     bfg_check(program, "(5 >= 4) == 1", {5, 4}, {1});
 }
 
+// ----- bf::var::equal(const var&) --------------------------------------------
 BOOST_AUTO_TEST_CASE(var__equal) {
     std::string program;
     {
@@ -304,6 +316,7 @@ BOOST_AUTO_TEST_CASE(var__equal) {
     bfg_check(program, "(0 == 0) == 1", {0, 0}, {1});
 }
 
+// ----- bf::var::not_equal(const var&) ----------------------------------------
 BOOST_AUTO_TEST_CASE(var__not_equal) {
     std::string program;
     {
@@ -328,6 +341,7 @@ BOOST_AUTO_TEST_CASE(var__not_equal) {
     bfg_check(program, "(0 != 0) == 0", {0, 0}, {0});
 }
 
+// ----- bf::generator::if_begin(const var&) -----------------------------------
 BOOST_AUTO_TEST_CASE(generator__if) {
     std::string program;
     {
@@ -354,6 +368,7 @@ BOOST_AUTO_TEST_CASE(generator__if) {
     bfg_check(program, "bool(5) == 1", {5}, {1});
 }
 
+// ----- bf::generator::else_begin(const var&) ---------------------------------
 BOOST_AUTO_TEST_CASE(generator__else) {
     std::string program;
     {
@@ -384,6 +399,7 @@ BOOST_AUTO_TEST_CASE(generator__else) {
     bfg_check(program, "not(5) == 0", {5}, {0});
 }
 
+// ----- bf::generator::print(const std::string &text) -------------------------
 BOOST_AUTO_TEST_CASE(generator__print) {
     const std::string test_str = "Test_123";
     std::string program;
@@ -402,6 +418,7 @@ BOOST_AUTO_TEST_CASE(generator__print) {
     bfg_check(program, "print('" + test_str + "')", {}, output);
 }
 
+// ----- Example code: Greatest common divisor ---------------------------------
 BOOST_AUTO_TEST_CASE(example_ggt) {
     std::string program;
     {

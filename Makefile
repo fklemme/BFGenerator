@@ -26,6 +26,5 @@ test_compiler: test/compiler.o bf/compiler.o
 
 
 clean:
-	rm -f bfg_Ueb3Aufg2 test_generator
+	rm -f bfg_Ueb3Aufg2 test_generator test_compiler
 	rm -f *.o bf/*.o test/*.o
-	rm -f *.bf

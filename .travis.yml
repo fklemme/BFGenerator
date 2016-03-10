@@ -1,13 +1,13 @@
 language: c++
 
-# Use Ubuntu 14.04
-sudo: required
-dist: trusty
-
-before_install:
-    - sudo apt-get update -qq
-install:
-    - sudo apt-get install -qq make g++ libboost-test-dev
+addons:
+    apt:
+        sources:
+            - ubuntu-toolchain-r-test
+        packages:
+            - make
+            - g++-5
+            - libboost-test-dev
 
 script:
     - make test

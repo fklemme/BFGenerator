@@ -6,14 +6,18 @@
 #include "../bf/interpreter.h"
 
 template <typename memory_type = unsigned char, std::size_t memory_size = 128>
-void bfg_check(const std::string &program, const std::string &message,
-        const std::vector<memory_type> &input, const std::vector<memory_type> &output)
+void bfg_check(const std::string &program, const std::string &description,
+        const std::vector<memory_type> &input, const std::vector<memory_type> &expected_output)
 {
     bf::interpreter<memory_type, memory_size> test(program);
     test.send_input(input);
     test.run();
+    const auto received_output = test.recv_output();
 
-    BOOST_CHECK_MESSAGE(std::equal(output.begin(), output.end(), test.recv_output().begin()), message);
+    BOOST_CHECK_MESSAGE(std::equal(expected_output.begin(), expected_output.end(),
+                                   received_output.begin(), received_output.end()),
+                        "Unexpected result after processing '" + description + "'!");
+
     // Ensure correct SP movement
     BOOST_CHECK(test.get_memory().at(0) == 1);
     BOOST_CHECK(test.get_stack_pointer() == 0);

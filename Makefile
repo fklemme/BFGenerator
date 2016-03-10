@@ -1,8 +1,4 @@
-# Use Clang
-#CXX       = clang++
-#CXXFLAGS += -stdlib=libc++
-
-CXXFLAGS += -std=c++11 -Wall
+CXXFLAGS += -std=c++14 -Wall
 TESTLIBS += -lboost_unit_test_framework
 
 .PHONY: all
@@ -17,10 +13,15 @@ bfg_Ueb3Aufg2: Ueb3Aufg2.o bf/generator.o
 
 
 # Tests
-test: test_generator
-	./test_generator
+test: test_generator test_compiler
+	for test in $^; do \
+	    ./$$test; \
+	done
 
 test_generator: test/generator.o bf/generator.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(TESTLIBS)
+
+test_compiler: test/compiler.o bf/compiler.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(TESTLIBS)
 
 

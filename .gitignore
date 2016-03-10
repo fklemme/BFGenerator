@@ -1,6 +1,7 @@
 # Generated files
 bfg_Ueb3Aufg2
 test_generator
+test_compiler
 *.o
 *.bf
 

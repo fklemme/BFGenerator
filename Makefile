@@ -13,7 +13,7 @@ bfg_Ueb3Aufg2: Ueb3Aufg2.o bf/generator.o
 
 
 # Tests
-test: test_generator test_compiler
+test: test_generator # test_compiler
 	for test in $^; do \
 	    ./$$test; \
 	done

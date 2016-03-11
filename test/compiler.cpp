@@ -26,7 +26,7 @@ void bfc_check(const std::string &program, const std::string &description,
 BOOST_AUTO_TEST_CASE(example_hello_world) {
     const std::string source = R"(
         function main() {
-            print("Hello world");
+            print "Hello world";
         }
     )";
 

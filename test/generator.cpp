@@ -5,11 +5,11 @@
 #include "../bf/generator.h"
 #include "../bf/interpreter.h"
 
-template <typename memory_type = unsigned char, std::size_t memory_size = 128>
+template <typename memory_type = unsigned char>
 void bfg_check(const std::string &program, const std::string &description,
         const std::vector<memory_type> &input, const std::vector<memory_type> &expected_output)
 {
-    bf::interpreter<memory_type, memory_size> test(program);
+    bf::interpreter<memory_type> test(program);
     test.send_input(input);
     test.run();
     const auto received_output = test.recv_output();
@@ -21,6 +21,9 @@ void bfg_check(const std::string &program, const std::string &description,
     // Ensure correct SP movement
     BOOST_CHECK(test.get_memory().at(0) == 1);
     BOOST_CHECK(test.get_stack_pointer() == 0);
+
+    BOOST_TEST_MESSAGE("Memory used to run '" + description + "':"
+                       " " + std::to_string(test.get_memory().size()));
 }
 
 // ----- bf::var::add(unsigned) ------------------------------------------------
@@ -418,8 +421,7 @@ BOOST_AUTO_TEST_CASE(generator__print) {
         program = bfg.get_code();
     }
 
-    std::vector<char> output(test_str.begin(), test_str.end());
-    bfg_check(program, "print('" + test_str + "')", {}, output);
+    bfg_check(program, "print('" + test_str + "')", {}, {test_str.begin(), test_str.end()});
 }
 
 // ----- Example code: Greatest common divisor ---------------------------------

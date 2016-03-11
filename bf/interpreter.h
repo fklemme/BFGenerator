@@ -1,20 +1,19 @@
 #pragma once
 
 #include <deque>
-#include <stdexcept>
 #include <iterator>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace bf {
 
-template <typename memory_type = unsigned char, std::size_t memory_size = 128>
+template <typename memory_type = unsigned char>
 class interpreter {
 public:
     interpreter(const std::string &program)
-        : m_program(program), m_instruction_pointer(0),
-        m_memory(memory_size), m_stack_pointer(0)
+        : m_program(program), m_instruction_pointer(0), m_stack_pointer(0)
     {
         // Find matching brackets (loops)
         std::vector<std::size_t> loop_stack;
@@ -42,27 +41,26 @@ public:
 
     void run() {
         while (m_instruction_pointer < m_program.size()) {
-            char op = m_program.at(m_instruction_pointer);
-            switch (op) {
+            switch (m_program.at(m_instruction_pointer)) {
             case '>': ++m_stack_pointer;
                       break;
             case '<': --m_stack_pointer;
                       break;
-            case '+': ++m_memory.at(m_stack_pointer);
+            case '+': ++memory_at(m_stack_pointer);
                       break;
-            case '-': --m_memory.at(m_stack_pointer);
+            case '-': --memory_at(m_stack_pointer);
                       break;
-            case '.': m_output_buffer.push_back(m_memory.at(m_stack_pointer));
+            case '.': m_output_buffer.push_back(memory_at(m_stack_pointer));
                       break;
             case ',': if (m_input_buffer.empty())
-                          throw std::runtime_error("Waiting for input...");
-                      m_memory.at(m_stack_pointer) = m_input_buffer.front();
+                          throw std::runtime_error("Tried to read without data in input buffer!");
+                      memory_at(m_stack_pointer) = m_input_buffer.front();
                       m_input_buffer.pop_front();
                       break;
-            case '[': if (m_memory.at(m_stack_pointer) == 0)
+            case '[': if (memory_at(m_stack_pointer) == 0)
                           m_instruction_pointer = m_loop_forward.at(m_instruction_pointer);
                       break;
-            case ']': if (m_memory.at(m_stack_pointer) != 0)
+            case ']': if (memory_at(m_stack_pointer) != 0)
                           m_instruction_pointer = m_loop_back.at(m_instruction_pointer);
                       break;
             default:  break; // No Brainfuck operation
@@ -72,7 +70,7 @@ public:
     }
 
     // Debug and testing
-    const std::vector<memory_type> get_memory() const {
+    const std::vector<memory_type> &get_memory() const {
         return m_memory;
     }
 
@@ -81,12 +79,18 @@ public:
     }
 
 private:
+    memory_type &memory_at(std::size_t position) {
+        if (m_memory.size() <= position)
+            m_memory.resize(position + 1);
+        return m_memory[position];
+    }
+
     const std::string                  m_program;
     std::size_t                        m_instruction_pointer;
     std::vector<memory_type>           m_memory;
     std::size_t                        m_stack_pointer;
-    std::map<std::size_t, std::size_t> m_loop_forward;
-    std::map<std::size_t, std::size_t> m_loop_back;
+    std::map<std::size_t, std::size_t> m_loop_forward; // '[' position to matching ']' position
+    std::map<std::size_t, std::size_t> m_loop_back;    // ']' position to matching '[' position
     std::deque<memory_type>            m_input_buffer;
     mutable std::vector<memory_type>   m_output_buffer;
 };

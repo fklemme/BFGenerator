@@ -5,11 +5,11 @@
 #include "../bf/compiler.h"
 #include "../bf/interpreter.h"
 
-template <typename memory_type = unsigned char, std::size_t memory_size = 128>
+template <typename memory_type = unsigned char>
 void bfc_check(const std::string &program, const std::string &description,
         const std::vector<memory_type> &input, const std::vector<memory_type> &expected_output)
 {
-    bf::interpreter<memory_type, memory_size> test(program);
+    bf::interpreter<memory_type> test(program);
     test.send_input(input);
     test.run();
     const auto received_output = test.recv_output();
@@ -17,6 +17,9 @@ void bfc_check(const std::string &program, const std::string &description,
     BOOST_CHECK_MESSAGE(std::equal(expected_output.begin(), expected_output.end(),
                                    received_output.begin(), received_output.end()),
                         "Unexpected result after processing '" + description + "'!");
+
+    BOOST_TEST_MESSAGE("Memory used to run '" + description + "':"
+                       " " + std::to_string(test.get_memory().size()));
 }
 
 // ----- Example program: Hello world ------------------------------------------

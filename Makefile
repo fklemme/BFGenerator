@@ -11,9 +11,9 @@ Ueb3Aufg2.bf: bfg_Ueb3Aufg2
 bfg_Ueb3Aufg2: Ueb3Aufg2.o bf/generator.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
-
 # Tests
-test: test_generator # test_compiler
+.PHONY: test
+test: test_generator test_compiler
 	for test in $^; do \
 	    ./$$test; \
 	done
@@ -21,9 +21,8 @@ test: test_generator # test_compiler
 test_generator: test/generator.o bf/generator.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(TESTLIBS)
 
-test_compiler: test/compiler.o bf/compiler.o
+test_compiler: test/compiler.o bf/compiler.o bf/generator.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(TESTLIBS)
-
 
 clean:
 	rm -f bfg_Ueb3Aufg2 test_generator test_compiler

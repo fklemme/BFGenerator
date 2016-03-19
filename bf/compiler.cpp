@@ -16,6 +16,39 @@
 #include <string>
 #include <vector>
 
+// ----- Scope_Exit (template from Andrei Alexandrescu) ------------------------
+// https://www.youtube.com/watch?v=WjTrfoiB0MQ
+
+#define CONCATENATE_IMPL(s1, s2) s1##s2
+#define CONCATENATE(s1, s2) CONCATENATE_IMPL(s1, s2)
+
+#ifdef __COUNTER__
+#define ANONYMOUS_VARIABLE(str) CONCATENATE(str, __COUNTER__)
+#else
+#define ANONYMOUS_VARIABLE(str) CONCATENATE(str, __LINE__)
+#endif
+
+namespace detail {
+    enum class scope_guard_helper {};
+
+    template <typename fun>
+    class scope_guard {
+        fun m_fn;
+    public:
+        scope_guard(fun &&fn) : m_fn(std::forward<fun>(fn)) {}
+        ~scope_guard() {m_fn();}
+    };
+
+    template <typename fun>
+    scope_guard<fun> operator+(scope_guard_helper, fun &&fn) {
+        return scope_guard<fun>(std::forward<fun>(fn));
+    }
+}
+
+#define SCOPE_EXIT \
+    auto ANONYMOUS_VARIABLE(SCOPE_EXIT_STATE) \
+        = ::detail::scope_guard_helper() + [&]()
+
 // ----- Program structs -------------------------------------------------------
 namespace bf {
 
@@ -214,15 +247,11 @@ public:
         m_scope.emplace_back();
         // TODO: Copy arguments
         // Restore old scope after the function returns.
-        BOOST_SCOPE_EXIT(this_, &scope_backup) {
-            std::swap(this_->m_scope, scope_backup);
-        } BOOST_SCOPE_EXIT_END
+        SCOPE_EXIT {std::swap(m_scope, scope_backup);};
 
         // Just for error report on recursion: Keep track of the call stack.
         m_call_stack.push_back(i.function_name);
-        BOOST_SCOPE_EXIT(this_) {
-            this_->m_call_stack.pop_back();
-        } BOOST_SCOPE_EXIT_END
+        SCOPE_EXIT {m_call_stack.pop_back();};
 
         // Finally, visit all instructions in the called function.
         for (const auto &instruction : function_it->instructions)

@@ -136,9 +136,21 @@ public:
         if (function_it == m_program.end())
             throw std::logic_error("Function not found: " + i.function_name);
 
+        // Check for recursion (which is not supported).
+        auto recursion_it = std::find(m_call_stack.begin(), m_call_stack.end(), i.function_name);
+        if (recursion_it != m_call_stack.end()) {
+            std::string call_stack_dump;
+            for (const auto &function : m_call_stack)
+                call_stack_dump += function + ", ";
+            call_stack_dump += "(*) " + i.function_name;
+            throw std::logic_error("Recursion not supported: " + call_stack_dump);
+        }
+
         // Visit all instructions in called function.
+        m_call_stack.push_back(i.function_name);
         for (const auto &instruction : function_it->instructions)
             boost::apply_visitor(*this, instruction);
+        m_call_stack.pop_back();
     }
 
     void operator()(const instruction::print_variable_t &i) {
@@ -156,6 +168,7 @@ public:
 private:
     program_t m_program; // TODO: just const ref?
     generator m_bfg;
+    std::vector<std::string> m_call_stack;
 };
 
 std::string generate(const program_t &program) {

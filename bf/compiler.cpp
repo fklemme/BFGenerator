@@ -14,10 +14,16 @@
 
 // ----- Program structs -------------------------------------------------------
 namespace bf {
+
 namespace instruction {
 
 struct function_call_t {
     std::string function_name;
+};
+
+struct variable_declaration_t {
+    std::string variable_name;
+    int         init_value;
 };
 
 struct print_variable_t {
@@ -28,12 +34,18 @@ struct print_text_t {
     std::string text;
 };
 
+struct scan_variable_t {
+    std::string variable_name;
+};
+
 } // namespace bf::instruction
 
 typedef boost::variant<
     instruction::function_call_t,
+    instruction::variable_declaration_t,
     instruction::print_variable_t,
-    instruction::print_text_t
+    instruction::print_text_t,
+    instruction::scan_variable_t
 > instruction_t;
 
 struct function_t {
@@ -51,12 +63,21 @@ BOOST_FUSION_ADAPT_STRUCT(
         (std::string, function_name))
 
 BOOST_FUSION_ADAPT_STRUCT(
+        bf::instruction::variable_declaration_t,
+        (std::string, variable_name)
+        (int,         init_value))
+
+BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::print_variable_t,
         (std::string, variable_name))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::print_text_t,
         (std::string, text))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::instruction::scan_variable_t,
+        (std::string, variable_name))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::function_t,
@@ -81,23 +102,29 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         variable_name = qi::lexeme[+qi::alpha];
 
         instruction = function_call
+            | variable_declaration
             | print_variable
-            | print_text;
+            | print_text
+            | scan_variable;
 
-        function_call  = function_name >> '(' >> -(variable_name % ',') >> ')' >> ';';
-        print_variable = "print" >> variable_name >> ";";
-        print_text     = "print" >> qi::lexeme['"' >> *(qi::char_ - '"') >> '"'] >> ';';
+        function_call        = function_name >> '(' >> -(variable_name % ',') >> ')' >> ';';
+        variable_declaration = "var" >> variable_name >> (('=' >> qi::uint_) | qi::attr(0)) >> ';';
+        print_variable       = "print" >> variable_name >> ';';
+        print_text           = "print" >> qi::lexeme['"' >> *(qi::char_ - '"') >> '"'] >> ';';
+        scan_variable        = "scan" >> variable_name >> ';';
     }
 
-    qi::rule<iterator, program_t(),                     ascii::space_type> program;
-    qi::rule<iterator, function_t(),                    ascii::space_type> function;
-    qi::rule<iterator, std::string(),                   ascii::space_type> function_name;
-    qi::rule<iterator, std::string(),                   ascii::space_type> variable_name;
-    qi::rule<iterator, instruction_t(),                 ascii::space_type> instruction;
+    qi::rule<iterator, program_t(),                           ascii::space_type> program;
+    qi::rule<iterator, function_t(),                          ascii::space_type> function;
+    qi::rule<iterator, std::string(),                         ascii::space_type> function_name;
+    qi::rule<iterator, std::string(),                         ascii::space_type> variable_name;
+    qi::rule<iterator, instruction_t(),                       ascii::space_type> instruction;
 
-    qi::rule<iterator, instruction::function_call_t(),  ascii::space_type> function_call;
-    qi::rule<iterator, instruction::print_variable_t(), ascii::space_type> print_variable;
-    qi::rule<iterator, instruction::print_text_t(),     ascii::space_type> print_text;
+    qi::rule<iterator, instruction::function_call_t(),        ascii::space_type> function_call;
+    qi::rule<iterator, instruction::variable_declaration_t(), ascii::space_type> variable_declaration;
+    qi::rule<iterator, instruction::print_variable_t(),       ascii::space_type> print_variable;
+    qi::rule<iterator, instruction::print_text_t(),           ascii::space_type> print_text;
+    qi::rule<iterator, instruction::scan_variable_t(),        ascii::space_type> scan_variable;
 };
 
 // ----- Compilation algorithms ------------------------------------------------
@@ -148,17 +175,41 @@ public:
 
         // Visit all instructions in called function.
         m_call_stack.push_back(i.function_name);
+        m_scope.emplace_back(); // new scope for variables
         for (const auto &instruction : function_it->instructions)
             boost::apply_visitor(*this, instruction);
+        m_scope.pop_back();
         m_call_stack.pop_back();
     }
 
+    void operator()(const instruction::variable_declaration_t &i) {
+        auto it = m_scope.back().find(i.variable_name);
+        if (it != m_scope.back().end())
+            throw std::logic_error("Redeclaration of variable: " + i.variable_name);
+
+        m_scope.back().emplace(i.variable_name, m_bfg.new_var(i.variable_name, i.init_value));
+    }
+
     void operator()(const instruction::print_variable_t &i) {
-        // TODO
+        get_var(i.variable_name)->write_output();
     }
 
     void operator()(const instruction::print_text_t &i) {
         m_bfg.print(i.text);
+    }
+
+    void operator()(const instruction::scan_variable_t &i) {
+        get_var(i.variable_name)->read_input();
+    }
+
+    const generator::var_ptr &get_var(const std::string &variable_name) const {
+        for (auto scope_it = m_scope.rbegin(); scope_it != m_scope.rend(); ++scope_it) {
+            auto it = scope_it->find(variable_name);
+            if (it != scope_it->end())
+                return it->second;
+        }
+
+        throw std::logic_error("Variable not declared in this scope: " + variable_name);
     }
 
     const generator &get_generator() const {
@@ -166,9 +217,10 @@ public:
     }
 
 private:
-    program_t m_program; // TODO: just const ref?
-    generator m_bfg;
-    std::vector<std::string> m_call_stack;
+    program_t                                              m_program; // TODO: just const ref?
+    generator                                              m_bfg;
+    std::vector<std::map<std::string, generator::var_ptr>> m_scope;
+    std::vector<std::string>                               m_call_stack;
 };
 
 std::string generate(const program_t &program) {

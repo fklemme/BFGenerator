@@ -77,6 +77,23 @@ BOOST_AUTO_TEST_CASE(compiler_scan_and_print) {
     bfc_check(program, "Echo program", {17}, {17});
 }
 
+// ----- Compiler: Arithmetics -------------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_arithmetics) {
+    const std::string source = R"(
+        function main() {
+            var a = 2 + 5;
+            var b = 3 * 3;
+            a = a + b;
+            print a;
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Arithmetics", {}, {16});
+}
+
 // ----- Compiler: Duplicate function names ------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_duplicate_function_names) {
     const std::string source = R"(

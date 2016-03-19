@@ -18,8 +18,12 @@ void bfc_check(const std::string &program, const std::string &description,
                                    received_output.begin(), received_output.end()),
                         "Unexpected result after processing '" + description + "'!");
 
-    BOOST_TEST_MESSAGE("Memory used to run '" + description + "':"
-                       " " + std::to_string(test.get_memory().size()));
+    BOOST_TEST_MESSAGE("----- Results for '" + description + "' -----");
+    std::string output_int;
+    for (auto v : received_output)
+        output_int += " " + std::to_string(v);
+    BOOST_TEST_MESSAGE("Received output (as int):" + output_int);
+    BOOST_TEST_MESSAGE("Memory used: " + std::to_string(test.get_memory().size()));
 }
 
 // ----- Example program: Hello world ------------------------------------------
@@ -55,11 +59,42 @@ BOOST_AUTO_TEST_CASE(compiler_function_call) {
     bfc_check(program, "Function call 'test()'", {}, {result.begin(), result.end()});
 }
 
+// ----- Compiler: Scan and print ----------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_scan_and_print) {
+    const std::string source = R"(
+        function main() {
+            var a;
+            scan a;
+            print a;
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Echo program", {2}, {2});
+    bfc_check(program, "Echo program", {5}, {5});
+    bfc_check(program, "Echo program", {17}, {17});
+}
+
 // ----- Compiler: Duplicate function names ------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_duplicate_function_names) {
     const std::string source = R"(
         function main() {}
         function main() {}
+    )";
+
+    bf::compiler bfc;
+    BOOST_CHECK_THROW(bfc.compile(source), std::exception);
+}
+
+// ----- Compiler: Duplicate variable names ------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_duplicate_variable_names) {
+    const std::string source = R"(
+        function main() {
+            var test;
+            var test;
+        }
     )";
 
     bf::compiler bfc;

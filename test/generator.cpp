@@ -22,8 +22,12 @@ void bfg_check(const std::string &program, const std::string &description,
     BOOST_CHECK(test.get_memory().at(0) == 1);
     BOOST_CHECK(test.get_stack_pointer() == 0);
 
-    BOOST_TEST_MESSAGE("Memory used to run '" + description + "':"
-                       " " + std::to_string(test.get_memory().size()));
+    BOOST_TEST_MESSAGE("----- Results for '" + description + "' -----");
+    std::string output_int;
+    for (auto v : received_output)
+        output_int += " " + std::to_string(v);
+    BOOST_TEST_MESSAGE("Received output (as int):" + output_int);
+    BOOST_TEST_MESSAGE("Memory used: " + std::to_string(test.get_memory().size()));
 }
 
 // ----- bf::var::add(unsigned) ------------------------------------------------

@@ -16,9 +16,10 @@ class var;
 
 class generator {
     friend class var;
-    typedef std::shared_ptr<var> var_ptr;
 
 public:
+    typedef std::shared_ptr<var> var_ptr;
+
     var_ptr new_var(std::string var_name = "", unsigned init_value = 0, unsigned pref_stack_pos = 0);
 
     template <unsigned size>

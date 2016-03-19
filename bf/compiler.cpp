@@ -1,17 +1,20 @@
 #include "compiler.h"
 #include "generator.h"
 
+#define BOOST_RESULT_OF_USE_DECLTYPE
+#define BOOST_SPIRIT_USE_PHOENIX_V3
+
 #include <algorithm>
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/scope_exit.hpp>
+#include <boost/spirit/include/phoenix.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/variant.hpp>
+#include <iostream> // for std::cerr in parser
 #include <ostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-#include <iostream> // debug outputs
 
 // ----- Program structs -------------------------------------------------------
 namespace bf {
@@ -92,15 +95,16 @@ namespace bf {
 namespace qi    = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 
+#define KEYWORDS (qi::lit("function") | "var" | "print" | "scan")
 template <typename iterator>
 struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     grammar() : grammar::base_type(program) {
         program = *function;
-        function = "function" >> function_name
-            >> '(' >> -(variable_name % ',') >> ')'
-            >> '{' >> *instruction >> '}';
-        function_name = qi::lexeme[+qi::alpha];
-        variable_name = qi::lexeme[+qi::alpha];
+        function = qi::lexeme["function"] > function_name
+            > '(' > -(variable_name % ',') > ')'
+            > '{' > *instruction > '}';
+        function_name = qi::lexeme[+qi::alpha - KEYWORDS];
+        variable_name = qi::lexeme[+qi::alpha - KEYWORDS];
 
         instruction = function_call
             | variable_declaration
@@ -108,11 +112,41 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
             | print_text
             | scan_variable;
 
-        function_call        = function_name >> '(' >> -(variable_name % ',') >> ')' >> ';';
-        variable_declaration = "var" >> variable_name >> (('=' >> qi::uint_) | qi::attr(0)) >> ';';
-        print_variable       = "print" >> variable_name >> ';';
-        print_text           = "print" >> qi::lexeme['"' >> *(qi::char_ - '"') >> '"'] >> ';';
-        scan_variable        = "scan" >> variable_name >> ';';
+        function_call        = function_name >> '(' > -(variable_name % ',') > ')' > ';';
+        variable_declaration = qi::lexeme["var"] > variable_name > (('=' > qi::uint_) | qi::attr(0)) > ';';
+        print_variable       = qi::lexeme["print"] >> variable_name > ';';
+        print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'] > ';';
+        scan_variable        = qi::lexeme["scan"] > variable_name > ';';
+
+        program.name("program");
+        function.name("function");
+        function_name.name("function name");
+        variable_name.name("variable name");
+        instruction.name("instruction");
+        function_call.name("function call");
+        variable_declaration.name("variable declaration");
+        print_variable.name("print variable");
+        print_text.name("print text");
+        scan_variable.name("scan variable");
+
+        auto on_error = [](auto first, auto last, auto err, auto what) {
+            std::string before(first, err);
+            std::size_t bpos = before.find_last_of('\n');
+            if (bpos != std::string::npos)
+                before = before.substr(bpos + 1);
+
+            std::string after(err, last);
+            std::size_t apos = after.find_first_of('\n');
+            if (apos != std::string::npos)
+                after = after.substr(0, apos);
+
+            std::cerr << "Error! Expecting " << what << " here:\n"
+                << before << after << '\n'
+                << std::string(before.size(), ' ') << '^'
+                << std::endl;
+        };
+
+        qi::on_error<qi::fail>(program, boost::phoenix::bind(on_error, qi::_1, qi::_2, qi::_3, qi::_4));
     }
 
     qi::rule<iterator, program_t(),                           ascii::space_type> program;

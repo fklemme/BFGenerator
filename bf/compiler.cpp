@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/scope_exit.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/variant.hpp>
 #include <ostream>
@@ -173,13 +174,25 @@ public:
             throw std::logic_error("Recursion not supported: " + call_stack_dump);
         }
 
-        // Visit all instructions in called function.
+        // Provide a clean scope for the called function.
+        std::vector<std::map<std::string, generator::var_ptr>> scope_backup;
+        std::swap(m_scope, scope_backup);
+        m_scope.emplace_back();
+        // TODO: Copy arguments
+        // Restore old scope after the function returns.
+        BOOST_SCOPE_EXIT(this_, &scope_backup) {
+            std::swap(this_->m_scope, scope_backup);
+        } BOOST_SCOPE_EXIT_END
+
+        // Just for error report on recursion: Keep track of the call stack.
         m_call_stack.push_back(i.function_name);
-        m_scope.emplace_back(); // new scope for variables
+        BOOST_SCOPE_EXIT(this_) {
+            this_->m_call_stack.pop_back();
+        } BOOST_SCOPE_EXIT_END
+
+        // Finally, visit all instructions in the called function.
         for (const auto &instruction : function_it->instructions)
             boost::apply_visitor(*this, instruction);
-        m_scope.pop_back();
-        m_call_stack.pop_back();
     }
 
     void operator()(const instruction::variable_declaration_t &i) {

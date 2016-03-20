@@ -7,3 +7,7 @@ test_compiler
 
 # Temp files
 .*.swp
+
+# Visual Studio
+Solution/BFGenerator.sdf
+Solution/BFGenerator.VC.opendb

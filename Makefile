@@ -20,10 +20,10 @@ test: test_generator test_compiler
 	    ./$$test; \
 	done
 
-test_generator: test/generator.o bf/generator.o
+test_generator: test/generator_tests.o bf/generator.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(TESTLIBS)
 
-test_compiler: test/compiler.o bf/compiler.o bf/generator.o
+test_compiler: test/compiler_tests.o bf/compiler.o bf/generator.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(TESTLIBS)
 
 clean:

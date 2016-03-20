@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+// ----- Generator example: Ueb3Aufg2 -----------------------------------------
+
 int main(int argc, char **argv) {
     bf::generator bfg;
 

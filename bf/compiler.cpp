@@ -302,10 +302,89 @@ program_t parse(const std::string &source) {
     return program;
 }
 
+typedef std::vector<std::map<std::string, generator::var_ptr>> scope_tree_t;
+
+class expression_visitor : public boost::static_visitor<void> {
+public:
+    expression_visitor(generator &bfg, const scope_tree_t &scope, const generator::var_ptr &var_ptr)
+        : m_bfg(bfg), m_scope(scope)
+    {
+        m_var_stack.push_back(var_ptr);
+    }
+
+    void operator()(const expression::variable_t &e) {
+        m_var_stack.back()->copy(*get_var(e.variable_name));
+    }
+
+    void operator()(const expression::value_t &e) {
+        m_var_stack.back()->set(e.value);
+    }
+
+    void operator()(const expression::unary_operation_t<expression::operator_t::not_> &e) {
+        boost::apply_visitor(*this, e.expression);
+        m_var_stack.back()->bool_not(*m_var_stack.back()); // TODO: Implement 'self' case in generator.
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::plus> &e) {
+        boost::apply_visitor(*this, e.lhs);
+        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs))
+            m_var_stack.back()->add(v->value);
+        else {
+            auto rhs_ptr = m_bfg.new_var("_binary_plus_rhs");
+            m_var_stack.push_back(rhs_ptr);
+            boost::apply_visitor(*this, e.rhs);
+            m_var_stack.pop_back();
+            m_var_stack.back()->add(*rhs_ptr);
+        }
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::minus> &e) {
+        boost::apply_visitor(*this, e.lhs);
+        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs))
+            m_var_stack.back()->subtract(v->value);
+        else {
+            auto rhs_ptr = m_bfg.new_var("_binary_minus_rhs");
+            m_var_stack.push_back(rhs_ptr);
+            boost::apply_visitor(*this, e.rhs);
+            m_var_stack.pop_back();
+            m_var_stack.back()->subtract(*rhs_ptr);
+        }
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::times> &e) {
+        boost::apply_visitor(*this, e.lhs);
+        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs))
+            m_var_stack.back()->multiply(v->value);
+        else {
+            auto rhs_ptr = m_bfg.new_var("_binary_times_rhs");
+            m_var_stack.push_back(rhs_ptr);
+            boost::apply_visitor(*this, e.rhs);
+            m_var_stack.pop_back();
+            m_var_stack.back()->multiply(*rhs_ptr);
+        }
+    }
+
+private:
+    const generator::var_ptr &get_var(const std::string &variable_name) const {
+        for (auto scope_it = m_scope.rbegin(); scope_it != m_scope.rend(); ++scope_it) {
+            auto it = scope_it->find(variable_name);
+            if (it != scope_it->end())
+                return it->second;
+        }
+
+        throw std::logic_error("Variable not declared in this scope: " + variable_name);
+    }
+
+    generator                       &m_bfg;
+    const scope_tree_t              &m_scope;
+    std::vector<generator::var_ptr> m_var_stack;
+};
+
 class instruction_visitor : public boost::static_visitor<void> {
 public:
     instruction_visitor(const program_t &program) : m_program(program) {}
 
+    // ----- Function call ----------------------------------------------------
     void operator()(const instruction::function_call_t &i) {
         // Check if called function exists.
         auto function_it = std::find_if(m_program.begin(), m_program.end(),
@@ -327,7 +406,7 @@ public:
         std::vector<std::map<std::string, generator::var_ptr>> scope_backup;
         std::swap(m_scope, scope_backup);
         m_scope.emplace_back();
-        // TODO: Copy arguments
+        // TODO: Copy/handle arguments
         // Restore old scope after the function returns.
         SCOPE_EXIT {std::swap(m_scope, scope_backup);};
 
@@ -340,31 +419,47 @@ public:
             boost::apply_visitor(*this, instruction);
     }
 
+    // ----- Variable declaration ---------------------------------------------
     void operator()(const instruction::variable_declaration_t &i) {
         auto it = m_scope.back().find(i.variable_name);
         if (it != m_scope.back().end())
             throw std::logic_error("Redeclaration of variable: " + i.variable_name);
 
-        // TODO: Assign/pass expression value
-        m_scope.back().emplace(i.variable_name, m_bfg.new_var(i.variable_name));
+        // If expression is a simple constant, pass it as init value.
+        if (const expression::value_t *v = boost::get<expression::value_t>(&i.expression))
+            m_scope.back().emplace(i.variable_name, m_bfg.new_var(i.variable_name, v->value));
+        else {
+            auto var_ptr = m_bfg.new_var(i.variable_name);
+            m_scope.back().emplace(i.variable_name, var_ptr);
+            boost::apply_visitor(expression_visitor(m_bfg, m_scope, var_ptr), i.expression);
+        }
     }
 
+    // ----- Variable assignment ----------------------------------------------
     void operator()(const instruction::variable_assignment_t &i) {
         // TODO: Assign expression value
     }
 
+    // ----- Print variable ---------------------------------------------------
     void operator()(const instruction::print_variable_t &i) {
         get_var(i.variable_name)->write_output();
     }
 
+    // ----- Print text -------------------------------------------------------
     void operator()(const instruction::print_text_t &i) {
         m_bfg.print(i.text);
     }
 
+    // ----- Scan variable ----------------------------------------------------
     void operator()(const instruction::scan_variable_t &i) {
         get_var(i.variable_name)->read_input();
     }
 
+    const generator &get_generator() const {
+        return m_bfg;
+    }
+
+private:
     const generator::var_ptr &get_var(const std::string &variable_name) const {
         for (auto scope_it = m_scope.rbegin(); scope_it != m_scope.rend(); ++scope_it) {
             auto it = scope_it->find(variable_name);
@@ -375,15 +470,10 @@ public:
         throw std::logic_error("Variable not declared in this scope: " + variable_name);
     }
 
-    const generator &get_generator() const {
-        return m_bfg;
-    }
-
-private:
-    program_t                                              m_program; // TODO: just const ref?
-    generator                                              m_bfg;
-    std::vector<std::map<std::string, generator::var_ptr>> m_scope;
-    std::vector<std::string>                               m_call_stack;
+    program_t                m_program; // TODO: just const ref?
+    generator                m_bfg;
+    scope_tree_t             m_scope;
+    std::vector<std::string> m_call_stack;
 };
 
 std::string generate(const program_t &program) {

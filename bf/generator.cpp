@@ -15,7 +15,7 @@ std::shared_ptr<var> generator::new_var(std::string var_name, unsigned init_valu
         for (char c : var_name)
             if (std::find(bf_ops.begin(), bf_ops.end(), c) != bf_ops.end())
                 throw std::logic_error("Variable name must not contain brainfuck operators!"
-                        " (" + var_name + ")");
+                                       " (" + var_name + ")");
     }
 
     // Find free memory (to be optimized?)
@@ -308,10 +308,10 @@ void var::add(const var &v) {
             " Add '" + v.m_name + "' to '" + m_name + "'",
             m_gen.m_indention);
 
+    auto temp = m_gen.new_var("_add");
     if (&v != this) {
         // Break v temporarily
         auto v_ptr = const_cast<var*>(&v);
-        auto temp = m_gen.new_var("_add");
         m_gen.while_begin(v);
         {
             this->increment();
@@ -322,7 +322,6 @@ void var::add(const var &v) {
         // Restore v
         v_ptr->move(*temp);
     } else {
-        auto temp = m_gen.new_var("_add");
         temp->move(*this);
         m_gen.while_begin(*temp);
         {
@@ -335,45 +334,57 @@ void var::add(const var &v) {
 }
 
 void var::subtract(const var &v) {
-    assert(&v != this); // TODO: Implement this case?
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
             " Subtract '" + v.m_name + "' from '" + m_name + "'",
             m_gen.m_indention);
 
-    // Break v temporarily
-    auto v_ptr = const_cast<var*>(&v);
-    auto temp = m_gen.new_var("_subtract");
-    m_gen.while_begin(v);
-    {
-        this->decrement();
-        temp->increment();
-        v_ptr->decrement();
-    }
-    m_gen.while_end(v);
-    // Restore v
-    v_ptr->move(*temp);
+    if (&v != this) {
+        // Break v temporarily
+        auto v_ptr = const_cast<var*>(&v);
+        auto temp = m_gen.new_var("_subtract");
+        m_gen.while_begin(v);
+        {
+            this->decrement();
+            temp->increment();
+            v_ptr->decrement();
+        }
+        m_gen.while_end(v);
+        // Restore v
+        v_ptr->move(*temp);
+    } else
+        this->set(0);
 }
 
 void var::multiply(const var &v) {
-    assert(&v != this); // TODO: Implement this case?
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
             " Multiply '" + v.m_name + "' with '" + m_name + "'",
             m_gen.m_indention);
 
     auto temp = m_gen.new_var("_multiply");
-    temp->move(*this);
-    m_gen.while_begin(*temp);
-    {
-        this->add(v);
-        temp->decrement();
+    if (&v != this) {
+        temp->move(*this);
+        m_gen.while_begin(*temp);
+        {
+            this->add(v);
+            temp->decrement();
+        }
+        m_gen.while_end(*temp);
+    } else {
+        temp->move(*this);
+        auto temp2 = m_gen.new_var("_multiply_2");
+        temp2->copy(*temp);
+        m_gen.while_begin(*temp);
+        {
+            this->add(*temp2);
+            temp->decrement();
+        }
+        m_gen.while_end(*temp);
     }
-    m_gen.while_end(*temp);
 }
 
 void var::bool_not(const var &v) {
-    assert(&v != this); // TODO: Implement this case?
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
             " Set '" + m_name + "' to not '" + v.m_name + "'",
@@ -382,7 +393,10 @@ void var::bool_not(const var &v) {
     // array = {1 (result), a}
     auto array = m_gen.new_var_array<2>("_not");
     array[0]->set(1);
-    array[1]->copy(v);
+    if (&v != this)
+        array[1]->copy(v);
+    else
+        array[1]->move(*this);
 
     m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[1]),
             "[<->[-]]", // If (a > 0), set result to 0 and clear a.

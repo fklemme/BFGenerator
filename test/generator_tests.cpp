@@ -183,6 +183,27 @@ BOOST_AUTO_TEST_CASE(var__subtract) {
     bfg_check(program, "20 - 7 == 13", {20, 7}, {13});
 }
 
+// ----- bf::var::subtract(const var&) -----------------------------------------
+BOOST_AUTO_TEST_CASE(var__subtract_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->subtract(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "5 - 5 == 0", {3}, {0});
+    bfg_check(program, "10 - 10 == 0", {10}, {0});
+}
+
 // ----- bf::var::multiply(const var&) -----------------------------------------
 BOOST_AUTO_TEST_CASE(var__multiply) {
     std::string program;
@@ -206,6 +227,27 @@ BOOST_AUTO_TEST_CASE(var__multiply) {
     bfg_check(program, "4 * 8 == 32", {4, 8}, {32});
 }
 
+// ----- bf::var::multiply(const var&) -----------------------------------------
+BOOST_AUTO_TEST_CASE(var__multiply_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->multiply(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "5 * 5 == 25", {5}, {25});
+    bfg_check(program, "7 * 7 == 49", {7}, {49});
+}
+
 // ----- bf::var::bool_not(const var&) -----------------------------------------
 BOOST_AUTO_TEST_CASE(var__bool_not) {
     std::string program;
@@ -218,6 +260,28 @@ BOOST_AUTO_TEST_CASE(var__bool_not) {
         a->read_input();
         b->bool_not(*a);
         b->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "!0 == 1", {0}, {1});
+    bfg_check(program, "!1 == 0", {1}, {0});
+    bfg_check(program, "!7 == 0", {7}, {0});
+}
+
+// ----- bf::var::bool_not(const var&) -----------------------------------------
+BOOST_AUTO_TEST_CASE(var__bool_not_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->bool_not(*a);
+        a->write_output();
 
         // Ensure correct SP movement
         begin->add(1);

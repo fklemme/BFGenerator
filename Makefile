@@ -2,13 +2,14 @@ CXXFLAGS += -std=c++14 -Wall
 TESTLIBS += -lboost_unit_test_framework
 
 .PHONY: all
-all: Ueb3Aufg2.bf
+all: bfg_example.bf
 
-# Example Brainfuck program
-Ueb3Aufg2.bf: bfg_Ueb3Aufg2
-	./bfg_Ueb3Aufg2
+# Run generator example
+bfg_example.bf: bfg_example
+	./bfg_example
 
-bfg_Ueb3Aufg2: Ueb3Aufg2.o bf/generator.o
+# Build generator example
+bfg_example: generator_example.o bf/generator.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Tests
@@ -27,5 +28,5 @@ test_compiler: test/compiler_tests.o bf/compiler.o bf/generator.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(TESTLIBS)
 
 clean:
-	rm -f bfg_Ueb3Aufg2 test_generator test_compiler
+	rm -f bfg_example test_generator test_compiler
 	rm -f *.o bf/*.o test/*.o

@@ -322,7 +322,7 @@ public:
 
     void operator()(const expression::unary_operation_t<expression::operator_t::not_> &e) {
         boost::apply_visitor(*this, e.expression);
-        m_var_stack.back()->bool_not(*m_var_stack.back()); // TODO: Implement 'self' case in generator.
+        m_var_stack.back()->bool_not(*m_var_stack.back());
     }
 
     void operator()(const expression::binary_operation_t<expression::operator_t::plus> &e) {
@@ -431,13 +431,15 @@ public:
         else {
             auto var_ptr = m_bfg.new_var(i.variable_name);
             m_scope.back().emplace(i.variable_name, var_ptr);
-            boost::apply_visitor(expression_visitor(m_bfg, m_scope, var_ptr), i.expression);
+            auto visitor = expression_visitor(m_bfg, m_scope, var_ptr);
+            boost::apply_visitor(visitor, i.expression);
         }
     }
 
     // ----- Variable assignment ----------------------------------------------
     void operator()(const instruction::variable_assignment_t &i) {
-        // TODO: Assign expression value
+        auto visitor = expression_visitor(m_bfg, m_scope, get_var(i.variable_name));
+        boost::apply_visitor(visitor, i.expression);
     }
 
     // ----- Print variable ---------------------------------------------------

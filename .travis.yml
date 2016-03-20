@@ -1,5 +1,10 @@
 language: c++
 
+# Use Trusty for more recent Boost library
+# https://docs.travis-ci.com/user/trusty-ci-environment/
+sudo: required
+dist: trusty
+
 addons:
     apt:
         sources:

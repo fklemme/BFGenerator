@@ -96,6 +96,50 @@ BOOST_AUTO_TEST_CASE(compiler_arithmetics) {
     bfc_check(program, "Arithmetics", {}, {16});
 }
 
+// ----- Compiler: Arithmetics 2 -----------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_arithmetics_2) {
+    const std::string source = R"(
+        function main() {
+            var n10 = 1 + 3 * 3;
+            var n8  = (1 + 3) * 2;
+            var n12 = (5 - 2 + 1) * (1 + 2);
+            var n36 = (n10 - 8) * 2 + n8 + 2 * n12;
+
+            print n10;
+            print n8;
+            print n12;
+            print n36;
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Arithmetics 2", {}, {10, 8, 12, 36});
+}
+
+// ----- Compiler: Arithmetics minus -------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_arithmetics_minus) {
+    const std::string source = R"(
+        function main() {
+            var m0 = 2 - 1 - 1;
+            var m2 = 2 - (1 - 1);
+            var p2 = 2 - 1 + 1;
+            var p0 = 2 - (1 + 1);
+
+            print m0;
+            print m2;
+            print p2;
+            print p0;
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Arithmetics 'minus'", {}, {0, 2, 2, 0});
+}
+
 // ----- Compiler: Duplicate function names ------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_duplicate_function_names) {
     const std::string source = R"(
@@ -113,6 +157,18 @@ BOOST_AUTO_TEST_CASE(compiler_duplicate_variable_names) {
         function main() {
             var test;
             var test;
+        }
+    )";
+
+    bf::compiler bfc;
+    BOOST_CHECK_THROW(bfc.compile(source), std::exception);
+}
+
+// ----- Compiler: Undeclared variable ----------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_undeclared_variable) {
+    const std::string source = R"(
+        function main() {
+            a = 5;
         }
     )";
 

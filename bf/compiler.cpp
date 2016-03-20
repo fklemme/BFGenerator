@@ -22,7 +22,7 @@ namespace bf {
 
 namespace expression {
 
-    enum class operator_t { not, plus, minus, times };
+    enum class operator_t { not_, plus, minus, times };
 
     // Forward declarations
     struct variable_t;
@@ -33,7 +33,7 @@ namespace expression {
     typedef boost::variant<
         boost::recursive_wrapper<variable_t>,
         boost::recursive_wrapper<value_t>,
-        boost::recursive_wrapper<unary_operation_t<operator_t::not>>,
+        boost::recursive_wrapper<unary_operation_t<operator_t::not_>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::plus>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::minus>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::times>>
@@ -118,7 +118,7 @@ BOOST_FUSION_ADAPT_STRUCT(
         (unsigned, value))
 
 BOOST_FUSION_ADAPT_STRUCT(
-        bf::expression::unary_operation_t<bf::expression::operator_t::not>,
+        bf::expression::unary_operation_t<bf::expression::operator_t::not_>,
         (bf::expression::expression_t, expression))
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -263,7 +263,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     qi::rule<iterator, expression::binary_operation_t<expression::operator_t::minus>(), ascii::space_type> binary_minus;
     qi::rule<iterator, expression::expression_t(),                                      ascii::space_type> term;
     qi::rule<iterator, expression::binary_operation_t<expression::operator_t::times>(), ascii::space_type> binary_times;
-    qi::rule<iterator, expression::unary_operation_t<expression::operator_t::not>(),    ascii::space_type> unary_not;
+    qi::rule<iterator, expression::unary_operation_t<expression::operator_t::not_>(),   ascii::space_type> unary_not;
     qi::rule<iterator, expression::expression_t(),                                      ascii::space_type> simple;
     qi::rule<iterator, expression::value_t(),                                           ascii::space_type> value;
     qi::rule<iterator, expression::variable_t(),                                        ascii::space_type> variable;

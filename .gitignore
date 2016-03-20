@@ -1,4 +1,4 @@
-# Generated files
+# Make generated files
 bfg_Ueb3Aufg2
 test_generator
 test_compiler
@@ -8,6 +8,13 @@ test_compiler
 # Temp files
 .*.swp
 
-# Visual Studio
+# Visual Studio files
 Solution/BFGenerator.sdf
 Solution/BFGenerator.VC.opendb
+Solution/.vs
+Solution/Debug
+Solution/Release
+Solution/Win32
+Solution/*/Debug
+Solution/*/Release
+Solution/*/Win32

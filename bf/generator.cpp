@@ -261,7 +261,9 @@ void var::write_output() const {
 }
 
 void var::move(var &v) {
-    assert(&v != this);
+    if (&v == this)
+        return;
+
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
             " Move from '" + v.m_name + "' to '" + m_name + "'",
@@ -277,7 +279,9 @@ void var::move(var &v) {
 }
 
 void var::copy(const var &v) {
-    assert(&v != this);
+    if (&v == this)
+        return;
+
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
             " Copy from '" + v.m_name + "' to '" + m_name + "'",
@@ -299,24 +303,35 @@ void var::copy(const var &v) {
 }
 
 void var::add(const var &v) {
-    assert(&v != this); // TODO: Implement this case?
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
             " Add '" + v.m_name + "' to '" + m_name + "'",
             m_gen.m_indention);
 
-    // Break v temporarily
-    auto v_ptr = const_cast<var*>(&v);
-    auto temp = m_gen.new_var("_add");
-    m_gen.while_begin(v);
-    {
-        this->increment();
-        temp->increment();
-        v_ptr->decrement();
+    if (&v != this) {
+        // Break v temporarily
+        auto v_ptr = const_cast<var*>(&v);
+        auto temp = m_gen.new_var("_add");
+        m_gen.while_begin(v);
+        {
+            this->increment();
+            temp->increment();
+            v_ptr->decrement();
+        }
+        m_gen.while_end(v);
+        // Restore v
+        v_ptr->move(*temp);
+    } else {
+        auto temp = m_gen.new_var("_add");
+        temp->move(*this);
+        m_gen.while_begin(*temp);
+        {
+            this->increment();
+            this->increment();
+            temp->decrement();
+        }
+        m_gen.while_end(*temp);
     }
-    m_gen.while_end(v);
-    // Restore v
-    v_ptr->move(*temp);
 }
 
 void var::subtract(const var &v) {

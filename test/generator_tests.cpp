@@ -139,6 +139,27 @@ BOOST_AUTO_TEST_CASE(var__add) {
     bfg_check(program, "5 + 8 == 13", {5, 8}, {13});
 }
 
+// ----- bf::var::add(const var&) ----------------------------------------------
+BOOST_AUTO_TEST_CASE(var__add_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->add(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "3 + 3 == 5", {3}, {6});
+    bfg_check(program, "5 + 5 == 10", {5}, {10});
+}
+
 // ----- bf::var::subtract(const var&) -----------------------------------------
 BOOST_AUTO_TEST_CASE(var__subtract) {
     std::string program;

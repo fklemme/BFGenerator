@@ -120,7 +120,7 @@ void generator::print(const std::string &text) {
         if (c < 32)
             pc[0]->set(c);
         else {
-            unsigned f = std::sqrt(c);
+            unsigned f = (unsigned) std::sqrt(c);
             m_out.emplace_back(move_sp_to(*pc[0]),
                     "[-]>" + std::string(c / f, '+') +
                     "[<" + std::string(f, '+') + ">-]<" + std::string(c % f, '+'),

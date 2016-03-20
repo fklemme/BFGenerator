@@ -29,7 +29,7 @@ public:
         for (auto it = m_pos_to_var.begin(); it != m_pos_to_var.end() && it->first < start_pos + size; ++it)
             start_pos = it->first + 1;
 
-        if (array_name.compare("") == 0)
+        if (array_name.empty())
             array_name = "_" + std::to_string(start_pos);
 
         std::array<var_ptr, size> res;

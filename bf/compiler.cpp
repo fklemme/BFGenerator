@@ -28,7 +28,7 @@ struct function_call_t {
 
 struct variable_declaration_t {
     std::string variable_name;
-    int         init_value;
+    unsigned    init_value;
 };
 
 struct print_variable_t {
@@ -70,7 +70,7 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::variable_declaration_t,
         (std::string, variable_name)
-        (int,         init_value))
+        (unsigned,    init_value))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::print_variable_t,

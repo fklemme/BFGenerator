@@ -83,9 +83,10 @@ BOOST_AUTO_TEST_CASE(compiler_scan_and_print) {
 BOOST_AUTO_TEST_CASE(compiler_arithmetics) {
     const std::string source = R"(
         function main() {
-            var a = 2 + 5;
-            var b = 3 * 3;
-            a = a + b;
+            var a = 2 + 3;
+            var b = 5 - 3;
+            var c = 3 * 3;
+            a = a * b + c;
             print a;
         }
     )";
@@ -93,7 +94,7 @@ BOOST_AUTO_TEST_CASE(compiler_arithmetics) {
     bf::compiler bfc;
     const std::string program = bfc.compile(source);
 
-    bfc_check(program, "Arithmetics", {}, {16});
+    bfc_check(program, "Arithmetics", {}, {19});
 }
 
 // ----- Compiler: Arithmetics 2 -----------------------------------------------
@@ -126,18 +127,20 @@ BOOST_AUTO_TEST_CASE(compiler_arithmetics_minus) {
             var m2 = 2 - (1 - 1);
             var p2 = 2 - 1 + 1;
             var p0 = 2 - (1 + 1);
+            var x3 = 5 - 3 - 1 + 5 - 2 - 1;
 
             print m0;
             print m2;
             print p2;
             print p0;
+            print x3;
         }
     )";
 
     bf::compiler bfc;
     const std::string program = bfc.compile(source);
 
-    bfc_check(program, "Arithmetics 'minus'", {}, {0, 2, 2, 0});
+    bfc_check(program, "Arithmetics 'minus'", {}, {0, 2, 2, 0, 3});
 }
 
 // ----- Compiler: Duplicate function names ------------------------------------

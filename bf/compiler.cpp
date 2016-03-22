@@ -29,6 +29,7 @@ namespace expression {
     struct value_t;
     template <operator_t op> struct unary_operation_t;
     template <operator_t op> struct binary_operation_t;
+    struct parenthesized_expression_t;
 
     typedef boost::variant<
         boost::recursive_wrapper<variable_t>,
@@ -36,7 +37,8 @@ namespace expression {
         boost::recursive_wrapper<unary_operation_t<operator_t::not_>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::add>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::sub>>,
-        boost::recursive_wrapper<binary_operation_t<operator_t::mul>>
+        boost::recursive_wrapper<binary_operation_t<operator_t::mul>>,
+        boost::recursive_wrapper<parenthesized_expression_t>
     > expression_t;
 
     struct variable_t {
@@ -56,6 +58,10 @@ namespace expression {
     struct binary_operation_t {
         expression_t lhs;
         expression_t rhs;
+    };
+
+    struct parenthesized_expression_t {
+        expression_t expression;
     };
 
 } // namespace bf::expression
@@ -137,6 +143,10 @@ BOOST_FUSION_ADAPT_STRUCT(
         (bf::expression::expression_t, rhs))
 
 BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::parenthesized_expression_t,
+        (bf::expression::expression_t, expression))
+
+BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::function_call_t,
         (std::string, function_name))
 
@@ -178,29 +188,56 @@ namespace ascii = boost::spirit::ascii;
 template <typename iterator>
 struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     grammar() : grammar::base_type(program) {
-        program = *function;
+        program  = *function;
         function = qi::lexeme["function"] > function_name
-            > '(' > -(variable_name % ',') > ')'
-            > '{' > *instruction > '}';
+                 > '(' > -(variable_name % ',') > ')'
+                 > '{' > *instruction > '}';
         function_name = qi::lexeme[(qi::alpha >> *qi::alnum) - KEYWORDS];
         variable_name = qi::lexeme[(qi::alpha >> *qi::alnum) - KEYWORDS];
 
-        expression  = binary_add | binary_sub | term;
-        binary_add  = term >> '+' > expression;
-        binary_sub  = term >> '-' > expression;
-        term        = binary_mul | unary_not | simple;
-        binary_mul  = simple >> '*' > term;
-        unary_not   = '!' > simple;
-        simple      = value | variable | ('(' > expression > ')');
-        value       = qi::uint_;
-        variable    = variable_name;
+        // TODO: Descripe circumstances here!
+        typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
+        typedef expression::binary_operation_t<expression::operator_t::sub> binary_op_sub_t;
+        typedef expression::binary_operation_t<expression::operator_t::add> binary_op_add_t;
+        auto on_binary_sub = [](const binary_op_sub_t &attr, typename expression_rule_t::context_type &context, bool &match) {
+            if (const binary_op_sub_t *rhs = boost::get<binary_op_sub_t>(&attr.rhs)) {
+                // Rotate AST
+                binary_op_sub_t old_attr = attr;
+                binary_op_sub_t new_attr = *rhs;
+                old_attr.rhs = new_attr.lhs;
+                new_attr.lhs = old_attr;
+                boost::fusion::at_c<0>(context.attributes) = new_attr;
+            } else if (const binary_op_add_t *rhs = boost::get<binary_op_add_t>(&attr.rhs)) {
+                // Rotate AST
+                binary_op_sub_t old_attr = attr;
+                binary_op_add_t new_attr = *rhs;
+                old_attr.rhs = new_attr.lhs;
+                new_attr.lhs = old_attr;
+                boost::fusion::at_c<0>(context.attributes) = new_attr;
+            } else
+                boost::fusion::at_c<0>(context.attributes) = attr;
+        };
+
+        expression = binary_add [qi::_val = qi::_1]
+                   | binary_sub [on_binary_sub]
+                   | term       [qi::_val = qi::_1];
+
+        binary_add    = term >> '+' > expression;
+        binary_sub    = term >> '-' > expression;
+        term          = binary_mul | unary_not | simple;
+        binary_mul    = simple >> '*' > term;
+        unary_not     = '!' > simple;
+        simple        = value | variable | parenthesized;
+        value         = qi::uint_;
+        variable      = variable_name;
+        parenthesized = '(' > expression > ')';
 
         instruction = function_call
-            | variable_declaration
-            | variable_assignment
-            | print_variable
-            | print_text
-            | scan_variable;
+                    | variable_declaration
+                    | variable_assignment
+                    | print_variable
+                    | print_text
+                    | scan_variable;
 
         function_call        = function_name >> '(' > -(variable_name % ',') > ')' > ';';
         variable_declaration = qi::lexeme["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u})) > ';';
@@ -209,28 +246,29 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'] > ';';
         scan_variable        = qi::lexeme["scan"] > variable_name > ';';
 
-        program.name("program");                           debug(program);
-        function.name("function");                         debug(function);
-        function_name.name("function name");               debug(function_name);
-        variable_name.name("variable name");               debug(variable_name);
+        program.name("program");                           // debug(program);
+        function.name("function");                         // debug(function);
+        function_name.name("function name");               // debug(function_name);
+        variable_name.name("variable name");               // debug(variable_name);
 
-        expression.name("expression");                     debug(expression);
-        binary_add.name("binary add");                     debug(binary_add);
-        binary_sub.name("binary sub");                     debug(binary_sub);
-        term.name("term");                                 debug(term);
-        binary_mul.name("binary mul");                     debug(binary_mul);
-        unary_not.name("unary not");                       debug(unary_not);
-        simple.name("simple");                             debug(simple);
-        value.name("value");                               debug(value);
-        variable.name("variable");                         debug(variable);
+        expression.name("expression");                     // debug(expression);
+        binary_add.name("binary add");                     // debug(binary_add);
+        binary_sub.name("binary sub");                     // debug(binary_sub);
+        term.name("term");                                 // debug(term);
+        binary_mul.name("binary mul");                     // debug(binary_mul);
+        unary_not.name("unary not");                       // debug(unary_not);
+        simple.name("simple");                             // debug(simple);
+        value.name("value");                               // debug(value);
+        variable.name("variable");                         // debug(variable);
+        parenthesized.name("parenthesized expression");    // debug(parenthesized);
 
-        instruction.name("instruction");                   debug(instruction);
-        function_call.name("function call");               debug(function_call);
-        variable_declaration.name("variable declaration"); debug(variable_declaration);
-        variable_assignment.name("variable assignment");   debug(variable_assignment);
-        print_variable.name("print variable");             debug(print_variable);
-        print_text.name("print text");                     debug(print_text);
-        scan_variable.name("scan variable");               debug(scan_variable);
+        instruction.name("instruction");                   // debug(instruction);
+        function_call.name("function call");               // debug(function_call);
+        variable_declaration.name("variable declaration"); // debug(variable_declaration);
+        variable_assignment.name("variable assignment");   // debug(variable_assignment);
+        print_variable.name("print variable");             // debug(print_variable);
+        print_text.name("print text");                     // debug(print_text);
+        scan_variable.name("scan variable");               // debug(scan_variable);
 
 		// Print error message on parse failure.
         auto on_error = [](auto first, auto last, auto err, auto what) {
@@ -267,6 +305,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> simple;
     qi::rule<iterator, expression::value_t(),                                         ascii::space_type> value;
     qi::rule<iterator, expression::variable_t(),                                      ascii::space_type> variable;
+    qi::rule<iterator, expression::parenthesized_expression_t(),                      ascii::space_type> parenthesized;
 
     qi::rule<iterator, instruction::instruction_t(),          ascii::space_type> instruction;
     qi::rule<iterator, instruction::function_call_t(),        ascii::space_type> function_call;
@@ -305,63 +344,89 @@ program_t parse(const std::string &source) {
 typedef std::vector<std::map<std::string, generator::var_ptr>> scope_tree_t;
 
 class expression_visitor : public boost::static_visitor<void> {
+    int depth = 0; //debug, TODO: remove!
 public:
     expression_visitor(generator &bfg, const scope_tree_t &scope, const generator::var_ptr &var_ptr)
         : m_bfg(bfg), m_scope(scope)
     {
         m_var_stack.push_back(var_ptr);
+        std::cout << "Expression trace:" << std::endl;
     }
 
     void operator()(const expression::variable_t &e) {
+        std::cout << std::string(depth * 2, ' ') << e.variable_name << std::endl;
         m_var_stack.back()->copy(*get_var(e.variable_name));
     }
 
     void operator()(const expression::value_t &e) {
+        std::cout << std::string(depth * 2, ' ') << e.value << std::endl;
         m_var_stack.back()->set(e.value);
     }
 
     void operator()(const expression::unary_operation_t<expression::operator_t::not_> &e) {
+        std::cout << std::string(depth * 2, ' ') << "not" << std::endl;
+        ++depth;
         boost::apply_visitor(*this, e.expression);
         m_var_stack.back()->bool_not(*m_var_stack.back());
+        --depth;
     }
 
     void operator()(const expression::binary_operation_t<expression::operator_t::add> &e) {
+        std::cout << std::string(depth * 2, ' ') << "add" << std::endl;
+        ++depth;
         boost::apply_visitor(*this, e.lhs);
-        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs))
+        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
+            std::cout << std::string(depth * 2, ' ') << v->value << std::endl;
             m_var_stack.back()->add(v->value);
-        else {
+        } else {
             auto rhs_ptr = m_bfg.new_var("_binary_add_rhs");
             m_var_stack.push_back(rhs_ptr);
             boost::apply_visitor(*this, e.rhs);
             m_var_stack.pop_back();
             m_var_stack.back()->add(*rhs_ptr);
         }
+        --depth;
     }
 
     void operator()(const expression::binary_operation_t<expression::operator_t::sub> &e) {
+        std::cout << std::string(depth * 2, ' ') << "sub" << std::endl;
+        ++depth;
         boost::apply_visitor(*this, e.lhs);
-        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs))
+        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
+            std::cout << std::string(depth * 2, ' ') << v->value << std::endl;
             m_var_stack.back()->subtract(v->value);
-        else {
+        } else {
             auto rhs_ptr = m_bfg.new_var("_binary_sub_rhs");
             m_var_stack.push_back(rhs_ptr);
             boost::apply_visitor(*this, e.rhs);
             m_var_stack.pop_back();
             m_var_stack.back()->subtract(*rhs_ptr);
         }
+        --depth;
     }
 
     void operator()(const expression::binary_operation_t<expression::operator_t::mul> &e) {
+        std::cout << std::string(depth * 2, ' ') << "mul" << std::endl;
+        ++depth;
         boost::apply_visitor(*this, e.lhs);
-        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs))
+        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
+            std::cout << std::string(depth * 2, ' ') << v->value << std::endl;
             m_var_stack.back()->multiply(v->value);
-        else {
+        } else {
             auto rhs_ptr = m_bfg.new_var("_binary_mul_rhs");
             m_var_stack.push_back(rhs_ptr);
             boost::apply_visitor(*this, e.rhs);
             m_var_stack.pop_back();
             m_var_stack.back()->multiply(*rhs_ptr);
         }
+        --depth;
+    }
+
+    void operator()(const expression::parenthesized_expression_t &e) {
+        std::cout << std::string(depth * 2, ' ') << "( )" << std::endl;
+        ++depth;
+        boost::apply_visitor(*this, e.expression);
+        --depth;
     }
 
 private:

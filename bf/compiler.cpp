@@ -187,11 +187,11 @@ namespace ascii = boost::spirit::ascii;
 template <typename iterator>
 struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     // TODO: Descripe circumstances here!
-    typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
-    typedef expression::binary_operation_t<expression::operator_t::sub> binary_op_sub_t;
     typedef expression::binary_operation_t<expression::operator_t::add> binary_op_add_t;
-    typedef boost::variant<binary_op_sub_t, binary_op_add_t>            binary_op_term_t;
+    typedef expression::binary_operation_t<expression::operator_t::sub> binary_op_sub_t;
+    typedef boost::variant<binary_op_add_t, binary_op_sub_t>            binary_op_term_t;
 
+    // Helper: Get left/right hand side of arbitrary binary operator.
     enum class side_t {left, right};
     class get_child : public boost::static_visitor<expression::expression_t&> {
     public:
@@ -209,19 +209,21 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         side_t m_side;
     };
 
+    // Rotate/Rearrange nodes in AST so that subtraction operators are applied correctly later on.
     static binary_op_term_t rotate(binary_op_term_t attr, binary_op_term_t rhs) {
-        get_child right(side_t::right);
         get_child left (side_t::left);
+        get_child right(side_t::right);
 
         // Rotate nodes #1
         boost::apply_visitor(right, attr) = boost::apply_visitor(left, rhs); // attr.rhs = rhs.lhs;
 
         // If the new right child of 'attr' is still a binary operation, keep rotating. (recursive)
         const auto &attr_rhs = boost::apply_visitor(right, attr);
-        if (const binary_op_sub_t *attr_rhs_ptr = boost::get<binary_op_sub_t>(&attr_rhs))
+        if (const binary_op_add_t *attr_rhs_ptr = boost::get<binary_op_add_t>(&attr_rhs))
             attr = rotate(attr, *attr_rhs_ptr);
-        else if (const binary_op_add_t *attr_rhs_ptr = boost::get<binary_op_add_t>(&attr_rhs))
+        else if (const binary_op_sub_t *attr_rhs_ptr = boost::get<binary_op_sub_t>(&attr_rhs))
             attr = rotate(attr, *attr_rhs_ptr);
+        // else impossible
 
         // Rotate nodes #2
         boost::apply_visitor(left, rhs) = attr; // rhs.lhs = attr;
@@ -229,10 +231,12 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         return rhs;
     }
 
+    // On binary subtraction operator: Check if rotation of nodes is neccessary.
+    typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
     static void on_binary_sub(const binary_op_sub_t &attr, typename expression_rule_t::context_type &context) {
-        if (const binary_op_sub_t *rhs = boost::get<binary_op_sub_t>(&attr.rhs))
+        if (const binary_op_add_t *rhs = boost::get<binary_op_add_t>(&attr.rhs))
             boost::fusion::at_c<0>(context.attributes) = rotate(attr, *rhs);
-        else if (const binary_op_add_t *rhs = boost::get<binary_op_add_t>(&attr.rhs))
+        else if (const binary_op_sub_t *rhs = boost::get<binary_op_sub_t>(&attr.rhs))
             boost::fusion::at_c<0>(context.attributes) = rotate(attr, *rhs);
         else
             boost::fusion::at_c<0>(context.attributes) = attr;

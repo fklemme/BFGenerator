@@ -128,19 +128,23 @@ BOOST_AUTO_TEST_CASE(compiler_arithmetics_minus) {
             var p2 = 2 - 1 + 1;
             var p0 = 2 - (1 + 1);
             var x3 = 5 - 3 - 1 + 5 - 2 - 1;
+            var y3  = 5 - 1 - 1 - 1 - 1
+                    + 5 - 1 - 1 - 1 - 1
+                    + 5 - 1 - 1 - 1 - 1;
 
             print m0;
             print m2;
             print p2;
             print p0;
             print x3;
+            print y3;
         }
     )";
 
     bf::compiler bfc;
     const std::string program = bfc.compile(source);
 
-    bfc_check(program, "Arithmetics 'minus'", {}, {0, 2, 2, 0, 3});
+    bfc_check(program, "Arithmetics 'minus'", {}, {0, 2, 2, 0, 3, 3});
 }
 
 // ----- Compiler: Duplicate function names ------------------------------------

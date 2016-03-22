@@ -190,29 +190,46 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
     typedef expression::binary_operation_t<expression::operator_t::sub> binary_op_sub_t;
     typedef expression::binary_operation_t<expression::operator_t::add> binary_op_add_t;
-    typedef boost::variant<binary_op_sub_t, binary_op_add_t> binary_op_term_t;
-    
-    struct rotate_functor {
-        template <typename attr_t, typename rhs_t>
-        rhs_t operator()(attr_t attr, rhs_t rhs) {
-            // Rotate nodes
-            attr.rhs = rhs.lhs;
-            
-            // If the right child is still a binary operation, keep rotating. TODO:
-            /*
-            if (const binary_op_sub_t *attr_rhs = boost::get<binary_op_sub_t>(&attr.rhs))
-                attr = (*this)(attr, *attr_rhs);
-            else if (const binary_op_add_t *attr_rhs = boost::get<binary_op_add_t>(&attr.rhs))
-                attr = (*this)(attr, *attr_rhs);
-            */
-            
-            rhs.lhs = attr;
-            return rhs;
+    typedef boost::variant<binary_op_sub_t, binary_op_add_t>            binary_op_term_t;
+
+    enum class side_t {left, right};
+    class get_child : public boost::static_visitor<expression::expression_t&> {
+    public:
+        get_child(side_t side) : m_side(side) {}
+
+        template <typename binary_op_t>
+        expression::expression_t &operator()(binary_op_t &attr) {
+            if (m_side == side_t::left)
+                return attr.lhs;
+            else
+                return attr.rhs;
         }
+
+    private:
+        side_t m_side;
     };
-    
+
+    static binary_op_term_t rotate(binary_op_term_t attr, binary_op_term_t rhs) {
+        get_child right(side_t::right);
+        get_child left (side_t::left);
+
+        // Rotate nodes #1
+        boost::apply_visitor(right, attr) = boost::apply_visitor(left, rhs); // attr.rhs = rhs.lhs;
+
+        // If the new right child of 'attr' is still a binary operation, keep rotating. (recursive)
+        const auto &attr_rhs = boost::apply_visitor(right, attr);
+        if (const binary_op_sub_t *attr_rhs_ptr = boost::get<binary_op_sub_t>(&attr_rhs))
+            attr = rotate(attr, *attr_rhs_ptr);
+        else if (const binary_op_add_t *attr_rhs_ptr = boost::get<binary_op_add_t>(&attr_rhs))
+            attr = rotate(attr, *attr_rhs_ptr);
+
+        // Rotate nodes #2
+        boost::apply_visitor(left, rhs) = attr; // rhs.lhs = attr;
+
+        return rhs;
+    }
+
     static void on_binary_sub(const binary_op_sub_t &attr, typename expression_rule_t::context_type &context) {
-        rotate_functor rotate;
         if (const binary_op_sub_t *rhs = boost::get<binary_op_sub_t>(&attr.rhs))
             boost::fusion::at_c<0>(context.attributes) = rotate(attr, *rhs);
         else if (const binary_op_add_t *rhs = boost::get<binary_op_add_t>(&attr.rhs))
@@ -220,7 +237,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         else
             boost::fusion::at_c<0>(context.attributes) = attr;
     };
-    
+
     grammar() : grammar::base_type(program) {
         program  = *function;
         function = qi::lexeme["function"] > function_name

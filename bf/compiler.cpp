@@ -231,14 +231,14 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         return rhs;
     }
 
-    // On binary subtraction operator: Check if rotation of nodes is neccessary.
+    // On binary subtraction operator: Check if rotation of nodes is necessary.
     typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
     static void on_binary_sub(const binary_op_sub_t &attr, typename expression_rule_t::context_type &context) {
         if (const binary_op_add_t *rhs = boost::get<binary_op_add_t>(&attr.rhs))
             boost::fusion::at_c<0>(context.attributes) = rotate(attr, *rhs);
         else if (const binary_op_sub_t *rhs = boost::get<binary_op_sub_t>(&attr.rhs))
             boost::fusion::at_c<0>(context.attributes) = rotate(attr, *rhs);
-        else
+        else // No rotation, pass through.
             boost::fusion::at_c<0>(context.attributes) = attr;
     };
 
@@ -251,9 +251,9 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         function_name = qi::lexeme[(qi::alpha >> *qi::alnum) - KEYWORDS];
         variable_name = qi::lexeme[(qi::alpha >> *qi::alnum) - KEYWORDS];
 
-        expression = binary_add [qi::_val = qi::_1]
-                   | binary_sub [on_binary_sub]
-                   | term       [qi::_val = qi::_1];
+        expression = binary_add [qi::_val = qi::_1]  // Pass through
+                   | binary_sub [on_binary_sub]      // Check if rotation is necessary
+                   | term       [qi::_val = qi::_1]; // Pass through
 
         binary_add    = term >> '+' > expression;
         binary_sub    = term >> '-' > expression;

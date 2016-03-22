@@ -184,39 +184,51 @@ namespace bf {
 namespace qi    = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 
-#define KEYWORDS (qi::lit("function") | "var" | "print" | "scan")
 template <typename iterator>
 struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
+    // TODO: Descripe circumstances here!
+    typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
+    typedef expression::binary_operation_t<expression::operator_t::sub> binary_op_sub_t;
+    typedef expression::binary_operation_t<expression::operator_t::add> binary_op_add_t;
+    typedef boost::variant<binary_op_sub_t, binary_op_add_t> binary_op_term_t;
+    
+    struct rotate_functor {
+        template <typename attr_t, typename rhs_t>
+        rhs_t operator()(attr_t attr, rhs_t rhs) {
+            // Rotate nodes
+            attr.rhs = rhs.lhs;
+            
+            // If the right child is still a binary operation, keep rotating. TODO:
+            /*
+            if (const binary_op_sub_t *attr_rhs = boost::get<binary_op_sub_t>(&attr.rhs))
+                attr = (*this)(attr, *attr_rhs);
+            else if (const binary_op_add_t *attr_rhs = boost::get<binary_op_add_t>(&attr.rhs))
+                attr = (*this)(attr, *attr_rhs);
+            */
+            
+            rhs.lhs = attr;
+            return rhs;
+        }
+    };
+    
+    static void on_binary_sub(const binary_op_sub_t &attr, typename expression_rule_t::context_type &context) {
+        rotate_functor rotate;
+        if (const binary_op_sub_t *rhs = boost::get<binary_op_sub_t>(&attr.rhs))
+            boost::fusion::at_c<0>(context.attributes) = rotate(attr, *rhs);
+        else if (const binary_op_add_t *rhs = boost::get<binary_op_add_t>(&attr.rhs))
+            boost::fusion::at_c<0>(context.attributes) = rotate(attr, *rhs);
+        else
+            boost::fusion::at_c<0>(context.attributes) = attr;
+    };
+    
     grammar() : grammar::base_type(program) {
         program  = *function;
         function = qi::lexeme["function"] > function_name
                  > '(' > -(variable_name % ',') > ')'
                  > '{' > *instruction > '}';
+        #define KEYWORDS (qi::lit("function") | "var" | "print" | "scan")
         function_name = qi::lexeme[(qi::alpha >> *qi::alnum) - KEYWORDS];
         variable_name = qi::lexeme[(qi::alpha >> *qi::alnum) - KEYWORDS];
-
-        // TODO: Descripe circumstances here!
-        typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
-        typedef expression::binary_operation_t<expression::operator_t::sub> binary_op_sub_t;
-        typedef expression::binary_operation_t<expression::operator_t::add> binary_op_add_t;
-        auto on_binary_sub = [](const binary_op_sub_t &attr, typename expression_rule_t::context_type &context, bool &match) {
-            if (const binary_op_sub_t *rhs = boost::get<binary_op_sub_t>(&attr.rhs)) {
-                // Rotate AST
-                binary_op_sub_t old_attr = attr;
-                binary_op_sub_t new_attr = *rhs;
-                old_attr.rhs = new_attr.lhs;
-                new_attr.lhs = old_attr;
-                boost::fusion::at_c<0>(context.attributes) = new_attr;
-            } else if (const binary_op_add_t *rhs = boost::get<binary_op_add_t>(&attr.rhs)) {
-                // Rotate AST
-                binary_op_sub_t old_attr = attr;
-                binary_op_add_t new_attr = *rhs;
-                old_attr.rhs = new_attr.lhs;
-                new_attr.lhs = old_attr;
-                boost::fusion::at_c<0>(context.attributes) = new_attr;
-            } else
-                boost::fusion::at_c<0>(context.attributes) = attr;
-        };
 
         expression = binary_add [qi::_val = qi::_1]
                    | binary_sub [on_binary_sub]

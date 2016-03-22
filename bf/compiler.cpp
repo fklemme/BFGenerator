@@ -377,7 +377,6 @@ program_t parse(const std::string &source) {
 typedef std::vector<std::map<std::string, generator::var_ptr>> scope_tree_t;
 
 class expression_visitor : public boost::static_visitor<void> {
-    int depth = 0; //debug, TODO: remove!
 public:
     expression_visitor(generator &bfg, const scope_tree_t &scope, const generator::var_ptr &var_ptr)
         : m_bfg(bfg), m_scope(scope)
@@ -387,29 +386,21 @@ public:
     }
 
     void operator()(const expression::variable_t &e) {
-        std::cout << std::string(depth * 2, ' ') << e.variable_name << std::endl;
         m_var_stack.back()->copy(*get_var(e.variable_name));
     }
 
     void operator()(const expression::value_t &e) {
-        std::cout << std::string(depth * 2, ' ') << e.value << std::endl;
         m_var_stack.back()->set(e.value);
     }
 
     void operator()(const expression::unary_operation_t<expression::operator_t::not_> &e) {
-        std::cout << std::string(depth * 2, ' ') << "not" << std::endl;
-        ++depth;
         boost::apply_visitor(*this, e.expression);
         m_var_stack.back()->bool_not(*m_var_stack.back());
-        --depth;
     }
 
     void operator()(const expression::binary_operation_t<expression::operator_t::add> &e) {
-        std::cout << std::string(depth * 2, ' ') << "add" << std::endl;
-        ++depth;
         boost::apply_visitor(*this, e.lhs);
         if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
-            std::cout << std::string(depth * 2, ' ') << v->value << std::endl;
             m_var_stack.back()->add(v->value);
         } else {
             auto rhs_ptr = m_bfg.new_var("_binary_add_rhs");
@@ -418,15 +409,11 @@ public:
             m_var_stack.pop_back();
             m_var_stack.back()->add(*rhs_ptr);
         }
-        --depth;
     }
 
     void operator()(const expression::binary_operation_t<expression::operator_t::sub> &e) {
-        std::cout << std::string(depth * 2, ' ') << "sub" << std::endl;
-        ++depth;
         boost::apply_visitor(*this, e.lhs);
         if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
-            std::cout << std::string(depth * 2, ' ') << v->value << std::endl;
             m_var_stack.back()->subtract(v->value);
         } else {
             auto rhs_ptr = m_bfg.new_var("_binary_sub_rhs");
@@ -435,15 +422,11 @@ public:
             m_var_stack.pop_back();
             m_var_stack.back()->subtract(*rhs_ptr);
         }
-        --depth;
     }
 
     void operator()(const expression::binary_operation_t<expression::operator_t::mul> &e) {
-        std::cout << std::string(depth * 2, ' ') << "mul" << std::endl;
-        ++depth;
         boost::apply_visitor(*this, e.lhs);
         if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
-            std::cout << std::string(depth * 2, ' ') << v->value << std::endl;
             m_var_stack.back()->multiply(v->value);
         } else {
             auto rhs_ptr = m_bfg.new_var("_binary_mul_rhs");
@@ -452,14 +435,10 @@ public:
             m_var_stack.pop_back();
             m_var_stack.back()->multiply(*rhs_ptr);
         }
-        --depth;
     }
 
     void operator()(const expression::parenthesized_expression_t &e) {
-        std::cout << std::string(depth * 2, ' ') << "( )" << std::endl;
-        ++depth;
         boost::apply_visitor(*this, e.expression);
-        --depth;
     }
 
 private:

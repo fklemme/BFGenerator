@@ -382,7 +382,6 @@ public:
         : m_bfg(bfg), m_scope(scope)
     {
         m_var_stack.push_back(var_ptr);
-        std::cout << "Expression trace:" << std::endl;
     }
 
     void operator()(const expression::variable_t &e) {

@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-// ----- Syntax tree structs --------------------------------------------------
+// ----- Syntax tree structs ---------------------------------------------------
 namespace bf {
 
 namespace expression {
@@ -248,8 +248,8 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
                  > '(' > -(variable_name % ',') > ')'
                  > '{' > *instruction > '}';
         #define KEYWORDS (qi::lit("function") | "var" | "print" | "scan")
-        function_name = qi::lexeme[(qi::alpha >> *qi::alnum) - KEYWORDS];
-        variable_name = qi::lexeme[(qi::alpha >> *qi::alnum) - KEYWORDS];
+        function_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
+        variable_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
 
         expression = binary_add [qi::_val = qi::_1]  // Pass through
                    | binary_sub [on_binary_sub]      // Check if rotation is necessary
@@ -461,7 +461,7 @@ class instruction_visitor : public boost::static_visitor<void> {
 public:
     instruction_visitor(const program_t &program) : m_program(program) {}
 
-    // ----- Function call ----------------------------------------------------
+    // ----- Function call -----------------------------------------------------
     void operator()(const instruction::function_call_t &i) {
         // Check if called function exists.
         auto function_it = std::find_if(m_program.begin(), m_program.end(),
@@ -496,7 +496,7 @@ public:
             boost::apply_visitor(*this, instruction);
     }
 
-    // ----- Variable declaration ---------------------------------------------
+    // ----- Variable declaration ----------------------------------------------
     void operator()(const instruction::variable_declaration_t &i) {
         auto it = m_scope.back().find(i.variable_name);
         if (it != m_scope.back().end())
@@ -513,23 +513,23 @@ public:
         }
     }
 
-    // ----- Variable assignment ----------------------------------------------
+    // ----- Variable assignment -----------------------------------------------
     void operator()(const instruction::variable_assignment_t &i) {
         auto visitor = expression_visitor(m_bfg, m_scope, get_var(i.variable_name));
         boost::apply_visitor(visitor, i.expression);
     }
 
-    // ----- Print variable ---------------------------------------------------
+    // ----- Print variable ----------------------------------------------------
     void operator()(const instruction::print_variable_t &i) {
         get_var(i.variable_name)->write_output();
     }
 
-    // ----- Print text -------------------------------------------------------
+    // ----- Print text --------------------------------------------------------
     void operator()(const instruction::print_text_t &i) {
         m_bfg.print(i.text);
     }
 
-    // ----- Scan variable ----------------------------------------------------
+    // ----- Scan variable -----------------------------------------------------
     void operator()(const instruction::scan_variable_t &i) {
         get_var(i.variable_name)->read_input();
     }

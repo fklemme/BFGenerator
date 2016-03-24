@@ -147,6 +147,16 @@ BOOST_AUTO_TEST_CASE(compiler_arithmetics_minus) {
     bfc_check(program, "Arithmetics 'minus'", {}, {0, 2, 2, 0, 3, 3});
 }
 
+// ----- Compiler: No main function --------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_no_main_function) {
+	const std::string source = R"(
+        function non_main() {}
+    )";
+
+	bf::compiler bfc;
+	BOOST_CHECK_THROW(bfc.compile(source), std::exception);
+}
+
 // ----- Compiler: Duplicate function names ------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_duplicate_function_names) {
     const std::string source = R"(
@@ -160,10 +170,11 @@ BOOST_AUTO_TEST_CASE(compiler_duplicate_function_names) {
 
 // ----- Compiler: Duplicate variable names ------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_duplicate_variable_names) {
+    // TODO: Underscores don't seem to be printed correctly. ASCII/UTF-8 problem?
     const std::string source = R"(
         function main() {
-            var test;
-            var test;
+            var decleared_twice;
+            var decleared_twice;
         }
     )";
 
@@ -171,11 +182,11 @@ BOOST_AUTO_TEST_CASE(compiler_duplicate_variable_names) {
     BOOST_CHECK_THROW(bfc.compile(source), std::exception);
 }
 
-// ----- Compiler: Undeclared variable ----------------------------------------
+// ----- Compiler: Undeclared variable -----------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_undeclared_variable) {
     const std::string source = R"(
         function main() {
-            a = 5;
+            undeclared = 5;
         }
     )";
 

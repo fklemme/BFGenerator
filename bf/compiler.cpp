@@ -22,7 +22,7 @@ namespace bf {
 
 namespace expression {
 
-    enum class operator_t { not_, add, sub, mul };
+    enum class operator_t { or, and, eq, neq, lt, leq, gt, geq, add, sub, mul, not_ };
 
     // Forward declarations
     struct variable_t;
@@ -34,10 +34,18 @@ namespace expression {
     typedef boost::variant<
         boost::recursive_wrapper<variable_t>,
         boost::recursive_wrapper<value_t>,
-        boost::recursive_wrapper<unary_operation_t<operator_t::not_>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::or>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::and>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::eq>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::neq>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::lt>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::leq>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::gt>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::geq>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::add>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::sub>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::mul>>,
+        boost::recursive_wrapper<unary_operation_t<operator_t::not_>>,
         boost::recursive_wrapper<parenthesized_expression_t>
     > expression_t;
 
@@ -124,8 +132,44 @@ BOOST_FUSION_ADAPT_STRUCT(
         (unsigned, value))
 
 BOOST_FUSION_ADAPT_STRUCT(
-        bf::expression::unary_operation_t<bf::expression::operator_t::not_>,
-        (bf::expression::expression_t, expression))
+        bf::expression::binary_operation_t<bf::expression::operator_t::or>,
+        (bf::expression::expression_t, lhs)
+        (bf::expression::expression_t, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::binary_operation_t<bf::expression::operator_t::and>,
+        (bf::expression::expression_t, lhs)
+        (bf::expression::expression_t, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::binary_operation_t<bf::expression::operator_t::eq>,
+        (bf::expression::expression_t, lhs)
+        (bf::expression::expression_t, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::binary_operation_t<bf::expression::operator_t::neq>,
+        (bf::expression::expression_t, lhs)
+        (bf::expression::expression_t, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::binary_operation_t<bf::expression::operator_t::lt>,
+        (bf::expression::expression_t, lhs)
+        (bf::expression::expression_t, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::binary_operation_t<bf::expression::operator_t::leq>,
+        (bf::expression::expression_t, lhs)
+        (bf::expression::expression_t, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::binary_operation_t<bf::expression::operator_t::gt>,
+        (bf::expression::expression_t, lhs)
+        (bf::expression::expression_t, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::binary_operation_t<bf::expression::operator_t::geq>,
+        (bf::expression::expression_t, lhs)
+        (bf::expression::expression_t, rhs))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::binary_operation_t<bf::expression::operator_t::add>,
@@ -141,6 +185,10 @@ BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::binary_operation_t<bf::expression::operator_t::mul>,
         (bf::expression::expression_t, lhs)
         (bf::expression::expression_t, rhs))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::unary_operation_t<bf::expression::operator_t::not_>,
+        (bf::expression::expression_t, expression))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::parenthesized_expression_t,
@@ -191,7 +239,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     typedef expression::binary_operation_t<expression::operator_t::sub> binary_op_sub_t;
     typedef boost::variant<binary_op_add_t, binary_op_sub_t>            binary_op_term_t;
 
-    // Helper: Get left/right hand side of arbitrary binary operator.
+    // Helper: Get left/right hand side of arbitrary binary operation.
     enum class side_t {left, right};
     class get_child : public boost::static_visitor<expression::expression_t&> {
     public:
@@ -251,20 +299,53 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         function_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
         variable_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
 
-        expression = binary_add [qi::_val = qi::_1]  // Pass through
-                   | binary_sub [on_binary_sub]      // Check if rotation is necessary
-                   | term       [qi::_val = qi::_1]; // Pass through
+        // Expressions named after C operator precedence.
+        // See: http://en.cppreference.com/w/c/language/operator_precedence
+        expression = expression_12.alias();
 
-        binary_add    = term >> '+' > expression;
-        binary_sub    = term >> '-' > expression;
-        term          = binary_mul | unary_not | simple;
-        binary_mul    = simple >> '*' > term;
-        unary_not     = '!' > simple;
+        // 12: Logical OR
+        expression_12 = binary_or | expression_11;
+        binary_or     = expression_11 >> qi::lexeme["||"] > expression_12;
+
+        // 11: Logical AND
+        expression_11 = binary_and | expression_7;
+        binary_and    = expression_7 >> qi::lexeme["&&"] > expression_11;
+
+        // 7: For relational == and != respectively
+        expression_7 = binary_eq | binary_neq | expression_6;
+        binary_eq    = expression_6 >> qi::lexeme["=="] > expression_7;
+        binary_neq   = expression_6 >> qi::lexeme["!="] > expression_7;
+
+        // 6: For relational operators < and <= respectively
+        //    For relational operators > and >= respectively
+        expression_6 = binary_lt | binary_leq | binary_gt | binary_geq | expression_4;
+        binary_lt    = expression_4 >>            '<'   > expression_6;
+        binary_leq   = expression_4 >> qi::lexeme["<="] > expression_6;
+        binary_gt    = expression_4 >>            '>'   > expression_6;
+        binary_geq   = expression_4 >> qi::lexeme[">="] > expression_6;
+
+        // 4: Addition and subtraction
+        expression_4  = binary_add   [qi::_val = qi::_1]  // Pass through
+                      | binary_sub   [on_binary_sub]      // Check if rotation is necessary
+                      | expression_3 [qi::_val = qi::_1]; // Pass through
+        binary_add    = expression_3 >> '+' > expression_4;
+        binary_sub    = expression_3 >> '-' > expression_4;
+
+        // 3: Multiplication
+        expression_3 = binary_mul | expression_2;
+        binary_mul   = expression_2 >> '*' > expression_3;
+
+        // 2: Logical NOT
+        expression_2 = unary_not | simple;
+        unary_not    = '!' > simple;
+
+        // Lowest expression level
         simple        = value | variable | parenthesized;
         value         = qi::uint_;
         variable      = variable_name;
         parenthesized = '(' > expression > ')';
 
+        // Instructions
         instruction = function_call
                     | variable_declaration
                     | variable_assignment
@@ -285,10 +366,24 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         variable_name.name("variable name");               // debug(variable_name);
 
         expression.name("expression");                     // debug(expression);
+        expression_12.name("12: Logical OR");              // debug(expression_12);
+        binary_or.name("binary or");                       // debug(binary_or);
+        expression_11.name("11: Logical AND");             // debug(expression_11);
+        binary_and.name("binary and");                     // debug(binary_and);
+        expression_7.name("7: Relational eq/neq");         // debug(expression_7);
+        binary_eq.name("binary eq");                       // debug(binary_eq);
+        binary_neq.name("binary neq");                     // debug(binary_neq);
+        expression_6.name("6: Relational lt/leq/gt/geq");  // debug(expression_6);
+        binary_lt.name("binary lt");                       // debug(binary_lt);
+        binary_leq.name("binary leq");                     // debug(binary_leq);
+        binary_gt.name("binary gt");                       // debug(binary_gt);
+        binary_geq.name("binary geq");                     // debug(binary_geq);
+        expression_4.name("4: Addition and subtraction");  // debug(expression_4);
         binary_add.name("binary add");                     // debug(binary_add);
         binary_sub.name("binary sub");                     // debug(binary_sub);
-        term.name("term");                                 // debug(term);
+        expression_3.name("3: Multiplication");            // debug(expression_3);
         binary_mul.name("binary mul");                     // debug(binary_mul);
+        expression_2.name("2: Logical NOT");               // debug(expression_2);
         unary_not.name("unary not");                       // debug(unary_not);
         simple.name("simple");                             // debug(simple);
         value.name("value");                               // debug(value);
@@ -330,10 +425,24 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     qi::rule<iterator, std::string(), ascii::space_type> variable_name;
 
     qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression;
+    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_12;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::or>(),  ascii::space_type> binary_or;
+    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_11;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::and>(), ascii::space_type> binary_and;
+    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_7;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::eq>(),  ascii::space_type> binary_eq;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::neq>(), ascii::space_type> binary_neq;
+    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_6;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::lt>(),  ascii::space_type> binary_lt;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::leq>(), ascii::space_type> binary_leq;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::gt>(),  ascii::space_type> binary_gt;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::geq>(), ascii::space_type> binary_geq;
+    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_4;
     qi::rule<iterator, expression::binary_operation_t<expression::operator_t::add>(), ascii::space_type> binary_add;
     qi::rule<iterator, expression::binary_operation_t<expression::operator_t::sub>(), ascii::space_type> binary_sub;
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> term;
+    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_3;
     qi::rule<iterator, expression::binary_operation_t<expression::operator_t::mul>(), ascii::space_type> binary_mul;
+    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_2;
     qi::rule<iterator, expression::unary_operation_t<expression::operator_t::not_>(), ascii::space_type> unary_not;
     qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> simple;
     qi::rule<iterator, expression::value_t(),                                         ascii::space_type> value;
@@ -391,11 +500,16 @@ public:
     void operator()(const expression::value_t &e) {
         m_var_stack.back()->set(e.value);
     }
-
-    void operator()(const expression::unary_operation_t<expression::operator_t::not_> &e) {
-        boost::apply_visitor(*this, e.expression);
-        m_var_stack.back()->bool_not(*m_var_stack.back());
-    }
+    
+    // TODO...
+    void operator()(const expression::binary_operation_t<expression::operator_t::or> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::and> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::eq> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::neq> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::lt> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::leq> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::gt> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::geq> &e) {}
 
     void operator()(const expression::binary_operation_t<expression::operator_t::add> &e) {
         boost::apply_visitor(*this, e.lhs);
@@ -434,6 +548,11 @@ public:
             m_var_stack.pop_back();
             m_var_stack.back()->multiply(*rhs_ptr);
         }
+    }
+
+    void operator()(const expression::unary_operation_t<expression::operator_t::not_> &e) {
+        boost::apply_visitor(*this, e.expression);
+        m_var_stack.back()->bool_not(*m_var_stack.back());
     }
 
     void operator()(const expression::parenthesized_expression_t &e) {

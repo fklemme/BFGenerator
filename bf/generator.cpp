@@ -400,7 +400,7 @@ void var::bool_not(const var &v) {
 
     m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[1]),
             "[<->[-]]", // If (a > 0), set result to 0 and clear a.
-            "Compare operation sequence for 'not'",
+            "Operation sequence for 'not'",
             m_gen.m_indention);
 
     // Move result to *this
@@ -408,7 +408,40 @@ void var::bool_not(const var &v) {
 }
 
 void var::bool_and(const var &v) {
-    assert(0); // TODO: Implement
+    m_gen.m_out.emplace_back("", "", // NOP
+            "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+            " Set '" + m_name + "' to '" + m_name + "' and '" + v.m_name + "'",
+            m_gen.m_indention);
+
+    if (&v != this) {
+        // array = {0 (result), a, b}
+        auto array = m_gen.new_var_array<3>("_and");
+        array[0]->set(0);
+        array[1]->move(*this);
+        array[2]->copy(v);
+
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[1]),
+                "[>[<<+>>[-]]<[-]]", // If (a > 0), check if (b > 0)
+                // and if true set result to 1, then clear b and a.
+                "Operation sequence for 'and'",
+                m_gen.m_indention);
+
+        // Move result to *this
+        this->move(*array[0]);
+    } else {
+        // array = {0 (result), a}
+        auto array = m_gen.new_var_array<2>("_and");
+        array[0]->set(0);
+        array[1]->move(*this);
+
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[1]),
+                "[<+>[-]]", // If (a > 0), set result to 1 and clear a.
+                "Operation sequence for 'and'",
+                m_gen.m_indention);
+
+        // Move result to *this
+        this->move(*array[0]);
+    }
 }
 
 void var::bool_or(const var &v) {

@@ -349,7 +349,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     qi::rule<iterator, instruction::scan_variable_t(),        ascii::space_type> scan_variable;
 };
 
-// ----- Compilation algorithms ------------------------------------------------
+// ----- Parse source to AST ---------------------------------------------------
 program_t parse(const std::string &source) {
     // Build program struct from source input.
     grammar<decltype(source.begin())> g;
@@ -376,6 +376,7 @@ program_t parse(const std::string &source) {
 
 typedef std::vector<std::map<std::string, generator::var_ptr>> scope_tree_t;
 
+// ----- Evaluate AST expressions ----------------------------------------------
 class expression_visitor : public boost::static_visitor<void> {
 public:
     expression_visitor(generator &bfg, const scope_tree_t &scope, const generator::var_ptr &var_ptr)
@@ -456,6 +457,7 @@ private:
     std::vector<generator::var_ptr> m_var_stack;
 };
 
+// ----- Evaluate AST instructions ---------------------------------------------
 class instruction_visitor : public boost::static_visitor<void> {
 public:
     instruction_visitor(const program_t &program) : m_program(program) {}
@@ -554,6 +556,7 @@ private:
     std::vector<std::string> m_call_stack;
 };
 
+// ----- Generate Brainfuck code from AST --------------------------------------
 std::string generate(const program_t &program) {
     // As long as all function calls are inlined, this makes sense.
     instruction_visitor visitor(program);

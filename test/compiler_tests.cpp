@@ -156,6 +156,10 @@ BOOST_AUTO_TEST_CASE(compiler_comparisons) {
             var t1 = a < b;
             var f1 = a > b;
             var f2 = a == b;
+
+            print t1;
+            print f1;
+            print f2;
         }
     )";
 

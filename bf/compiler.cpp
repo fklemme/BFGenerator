@@ -22,7 +22,7 @@ namespace bf {
 
 namespace expression {
 
-    enum class operator_t { or, and, eq, neq, lt, leq, gt, geq, add, sub, mul, not_ };
+    enum class operator_t { or_, and_, eq, neq, lt, leq, gt, geq, add, sub, mul, not_ };
 
     // Forward declarations
     struct variable_t;
@@ -34,8 +34,8 @@ namespace expression {
     typedef boost::variant<
         boost::recursive_wrapper<variable_t>,
         boost::recursive_wrapper<value_t>,
-        boost::recursive_wrapper<binary_operation_t<operator_t::or>>,
-        boost::recursive_wrapper<binary_operation_t<operator_t::and>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::or_>>,
+        boost::recursive_wrapper<binary_operation_t<operator_t::and_>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::eq>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::neq>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::lt>>,
@@ -132,12 +132,12 @@ BOOST_FUSION_ADAPT_STRUCT(
         (unsigned, value))
 
 BOOST_FUSION_ADAPT_STRUCT(
-        bf::expression::binary_operation_t<bf::expression::operator_t::or>,
+        bf::expression::binary_operation_t<bf::expression::operator_t::or_>,
         (bf::expression::expression_t, lhs)
         (bf::expression::expression_t, rhs))
 
 BOOST_FUSION_ADAPT_STRUCT(
-        bf::expression::binary_operation_t<bf::expression::operator_t::and>,
+        bf::expression::binary_operation_t<bf::expression::operator_t::and_>,
         (bf::expression::expression_t, lhs)
         (bf::expression::expression_t, rhs))
 
@@ -424,30 +424,30 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     qi::rule<iterator, std::string(), ascii::space_type> function_name;
     qi::rule<iterator, std::string(), ascii::space_type> variable_name;
 
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression;
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_12;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::or>(),  ascii::space_type> binary_or;
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_11;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::and>(), ascii::space_type> binary_and;
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_7;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::eq>(),  ascii::space_type> binary_eq;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::neq>(), ascii::space_type> binary_neq;
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_6;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::lt>(),  ascii::space_type> binary_lt;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::leq>(), ascii::space_type> binary_leq;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::gt>(),  ascii::space_type> binary_gt;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::geq>(), ascii::space_type> binary_geq;
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_4;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::add>(), ascii::space_type> binary_add;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::sub>(), ascii::space_type> binary_sub;
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_3;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::mul>(), ascii::space_type> binary_mul;
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> expression_2;
-    qi::rule<iterator, expression::unary_operation_t<expression::operator_t::not_>(), ascii::space_type> unary_not;
-    qi::rule<iterator, expression::expression_t(),                                    ascii::space_type> simple;
-    qi::rule<iterator, expression::value_t(),                                         ascii::space_type> value;
-    qi::rule<iterator, expression::variable_t(),                                      ascii::space_type> variable;
-    qi::rule<iterator, expression::parenthesized_expression_t(),                      ascii::space_type> parenthesized;
+    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression;
+    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_12;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::or_>(),  ascii::space_type> binary_or;
+    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_11;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::and_>(), ascii::space_type> binary_and;
+    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_7;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::eq>(),   ascii::space_type> binary_eq;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::neq>(),  ascii::space_type> binary_neq;
+    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_6;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::lt>(),   ascii::space_type> binary_lt;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::leq>(),  ascii::space_type> binary_leq;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::gt>(),   ascii::space_type> binary_gt;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::geq>(),  ascii::space_type> binary_geq;
+    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_4;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::add>(),  ascii::space_type> binary_add;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::sub>(),  ascii::space_type> binary_sub;
+    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_3;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::mul>(),  ascii::space_type> binary_mul;
+    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_2;
+    qi::rule<iterator, expression::unary_operation_t<expression::operator_t::not_>(),  ascii::space_type> unary_not;
+    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> simple;
+    qi::rule<iterator, expression::value_t(),                                          ascii::space_type> value;
+    qi::rule<iterator, expression::variable_t(),                                       ascii::space_type> variable;
+    qi::rule<iterator, expression::parenthesized_expression_t(),                       ascii::space_type> parenthesized;
 
     qi::rule<iterator, instruction::instruction_t(),          ascii::space_type> instruction;
     qi::rule<iterator, instruction::function_call_t(),        ascii::space_type> function_call;
@@ -503,8 +503,8 @@ public:
     }
     
     // TODO...
-    void operator()(const expression::binary_operation_t<expression::operator_t::or> &e) {}
-    void operator()(const expression::binary_operation_t<expression::operator_t::and> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::or_> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::and_> &e) {}
     void operator()(const expression::binary_operation_t<expression::operator_t::eq> &e) {}
     void operator()(const expression::binary_operation_t<expression::operator_t::neq> &e) {}
     void operator()(const expression::binary_operation_t<expression::operator_t::lt> &e) {}

@@ -132,7 +132,7 @@ void generator::print(const std::string &text) {
     }
 }
 
-std::ostream& operator<<(std::ostream &o, const generator &g) {
+std::ostream &operator<<(std::ostream &o, const generator &g) {
     const unsigned indention_factor = 4;
 
     // Find good coloum width for formating
@@ -405,6 +405,14 @@ void var::bool_not(const var &v) {
 
     // Move result to *this
     this->move(*array[0]);
+}
+
+void var::bool_and(const var &v) {
+    assert(0); // TODO: Implement
+}
+
+void var::bool_or(const var &v) {
+    assert(0); // TODO: Implement
 }
 
 void var::lower_than(const var &v) {

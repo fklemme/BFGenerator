@@ -271,6 +271,58 @@ BOOST_AUTO_TEST_CASE(var__bool_not) {
     bfg_check(program, "!7 == 0", {7}, {0});
 }
 
+// ----- bf::var::bool_and(const var&) -----------------------------------------
+BOOST_AUTO_TEST_CASE(var__bool_and) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        auto b = bfg.new_var("b");
+        a->read_input();
+        b->read_input();
+        a->bool_and(*b);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "0 && 0 == 0", {0, 0}, {0});
+    bfg_check(program, "0 && 1 == 0", {0, 1}, {0});
+    bfg_check(program, "1 && 0 == 0", {1, 0}, {0});
+    bfg_check(program, "1 && 1 == 1", {1, 1}, {1});
+    bfg_check(program, "3 && 5 == 1", {3, 5}, {1});
+}
+
+// ----- bf::var::bool_or(const var&) ------------------------------------------
+BOOST_AUTO_TEST_CASE(var__bool_or) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        auto b = bfg.new_var("b");
+        a->read_input();
+        b->read_input();
+        a->bool_or(*b);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "0 || 0 == 0", {0, 0}, {0});
+    bfg_check(program, "0 || 1 == 1", {0, 1}, {1});
+    bfg_check(program, "1 || 0 == 1", {1, 0}, {1});
+    bfg_check(program, "1 || 1 == 1", {1, 1}, {1});
+    bfg_check(program, "3 || 0 == 1", {3, 0}, {1});
+}
+
 // ----- bf::var::bool_not(const var&) -----------------------------------------
 BOOST_AUTO_TEST_CASE(var__bool_not_self) {
     std::string program;

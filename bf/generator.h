@@ -20,6 +20,8 @@ class generator {
 public:
     typedef std::shared_ptr<var> var_ptr;
 
+    generator() = default;
+
     var_ptr new_var(std::string var_name = "", unsigned init_value = 0, unsigned pref_stack_pos = 0);
 
     template <unsigned size>
@@ -48,11 +50,13 @@ public:
 
     void print(const std::string &text);
 
-    friend std::ostream& operator<<(std::ostream&, const generator&);
+    friend std::ostream &operator<<(std::ostream&, const generator&);
     std::string get_code() const;
     std::string get_minimal_code() const;
 
 private:
+    generator(const generator&) = delete;
+
     // Helper function
     std::string move_sp_to(const var&);
 
@@ -60,7 +64,7 @@ private:
     typedef std::tuple<std::string, std::string, std::string, unsigned> output_t;
     std::vector<output_t> m_out;
     unsigned              m_indention = 0;
-    unsigned              m_debug_nr = 0;
+    unsigned              m_debug_nr  = 0;
 
     // TODO: Is this map really needed?
     std::map<unsigned, var*>          m_pos_to_var;
@@ -90,6 +94,8 @@ public:
     void subtract(const var&);
     void multiply(const var&);
     void bool_not(const var&);
+    void bool_and(const var&);
+    void bool_or(const var&);
 
     void lower_than(const var&);
     void lower_equal(const var&);

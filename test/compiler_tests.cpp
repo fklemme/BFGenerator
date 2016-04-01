@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(compiler_arithmetics_minus) {
     bfc_check(program, "Arithmetics 'minus'", {}, {0, 2, 2, 0, 3, 3});
 }
 
-// ----- Compiler: Comparisons -------------------------------------------
+// ----- Compiler: Comparisons -------------------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_comparisons) {
     const std::string source = R"(
         function main() {
@@ -166,7 +166,31 @@ BOOST_AUTO_TEST_CASE(compiler_comparisons) {
     bf::compiler bfc;
     const std::string program = bfc.compile(source);
 
-    bfc_check(program, "If / else", {}, {1, 0, 0});
+    bfc_check(program, "Comparisons", {}, {1, 0, 0});
+}
+
+// ----- Compiler: Comparisons 2 -----------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_comparisons_2) {
+    const std::string source = R"(
+        function main() {
+            var a = 2;
+            var b = 5;
+            var t1 = a < b && !(a > b);
+            var f1 = a > b || 0;
+            var t2 = a > b && 0 || 1;
+            var f2 = a == b && a != b;
+
+            print t1;
+            print f1;
+            print t2;
+            print f2;
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Comparisons 2", {}, {1, 0, 1, 0});
 }
 
 // ----- Compiler: No main function --------------------------------------------

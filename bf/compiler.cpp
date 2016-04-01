@@ -502,15 +502,91 @@ public:
         m_var_stack.back()->set(e.value);
     }
     
-    // TODO...
-    void operator()(const expression::binary_operation_t<expression::operator_t::or_> &e) {}
-    void operator()(const expression::binary_operation_t<expression::operator_t::and_> &e) {}
-    void operator()(const expression::binary_operation_t<expression::operator_t::eq> &e) {}
-    void operator()(const expression::binary_operation_t<expression::operator_t::neq> &e) {}
-    void operator()(const expression::binary_operation_t<expression::operator_t::lt> &e) {}
-    void operator()(const expression::binary_operation_t<expression::operator_t::leq> &e) {}
-    void operator()(const expression::binary_operation_t<expression::operator_t::gt> &e) {}
-    void operator()(const expression::binary_operation_t<expression::operator_t::geq> &e) {}
+    void operator()(const expression::binary_operation_t<expression::operator_t::or_> &e) {
+        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
+            if (v->value)
+                m_var_stack.back()->set(1);
+            else
+                boost::apply_visitor(*this, e.lhs);
+        } else {
+            boost::apply_visitor(*this, e.lhs);
+            auto rhs_ptr = m_bfg.new_var("_binary_or_rhs");
+            m_var_stack.push_back(rhs_ptr);
+            boost::apply_visitor(*this, e.rhs);
+            m_var_stack.pop_back();
+            m_var_stack.back()->bool_or(*rhs_ptr);
+        }
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::and_> &e) {
+        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
+            if (v->value)
+                boost::apply_visitor(*this, e.lhs);
+            else
+                m_var_stack.back()->set(0);
+        } else {
+            boost::apply_visitor(*this, e.lhs);
+            auto rhs_ptr = m_bfg.new_var("_binary_and_rhs");
+            m_var_stack.push_back(rhs_ptr);
+            boost::apply_visitor(*this, e.rhs);
+            m_var_stack.pop_back();
+            m_var_stack.back()->bool_and(*rhs_ptr);
+        }
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::eq> &e) {
+        boost::apply_visitor(*this, e.lhs);
+        auto rhs_ptr = m_bfg.new_var("_binary_eq_rhs");
+        m_var_stack.push_back(rhs_ptr);
+        boost::apply_visitor(*this, e.rhs);
+        m_var_stack.pop_back();
+        m_var_stack.back()->equal(*rhs_ptr);
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::neq> &e) {
+        boost::apply_visitor(*this, e.lhs);
+        auto rhs_ptr = m_bfg.new_var("_binary_neq_rhs");
+        m_var_stack.push_back(rhs_ptr);
+        boost::apply_visitor(*this, e.rhs);
+        m_var_stack.pop_back();
+        m_var_stack.back()->not_equal(*rhs_ptr);
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::lt> &e) {
+        boost::apply_visitor(*this, e.lhs);
+        auto rhs_ptr = m_bfg.new_var("_binary_lt_rhs");
+        m_var_stack.push_back(rhs_ptr);
+        boost::apply_visitor(*this, e.rhs);
+        m_var_stack.pop_back();
+        m_var_stack.back()->lower_than(*rhs_ptr);
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::leq> &e) {
+        boost::apply_visitor(*this, e.lhs);
+        auto rhs_ptr = m_bfg.new_var("_binary_leq_rhs");
+        m_var_stack.push_back(rhs_ptr);
+        boost::apply_visitor(*this, e.rhs);
+        m_var_stack.pop_back();
+        m_var_stack.back()->lower_equal(*rhs_ptr);
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::gt> &e) {
+        boost::apply_visitor(*this, e.lhs);
+        auto rhs_ptr = m_bfg.new_var("_binary_gt_rhs");
+        m_var_stack.push_back(rhs_ptr);
+        boost::apply_visitor(*this, e.rhs);
+        m_var_stack.pop_back();
+        m_var_stack.back()->greater_than(*rhs_ptr);
+    }
+
+    void operator()(const expression::binary_operation_t<expression::operator_t::geq> &e) {
+        boost::apply_visitor(*this, e.lhs);
+        auto rhs_ptr = m_bfg.new_var("_binary_geq_rhs");
+        m_var_stack.push_back(rhs_ptr);
+        boost::apply_visitor(*this, e.rhs);
+        m_var_stack.pop_back();
+        m_var_stack.back()->greater_equal(*rhs_ptr);
+    }
 
     void operator()(const expression::binary_operation_t<expression::operator_t::add> &e) {
         boost::apply_visitor(*this, e.lhs);

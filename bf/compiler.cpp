@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/optional.hpp>
 #include <boost/scope_exit.hpp>
 #include <boost/spirit/include/phoenix.hpp>
 #include <boost/spirit/include/qi.hpp>
@@ -111,14 +112,29 @@ namespace instruction {
         std::string variable_name;
     };
 
+    struct instruction_block_t;
+    struct if_else_t;
+
     typedef boost::variant<
         function_call_t,
         variable_declaration_t,
         variable_assignment_t,
         print_variable_t,
         print_text_t,
-        scan_variable_t
+        scan_variable_t,
+        boost::recursive_wrapper<if_else_t>,
+        boost::recursive_wrapper<instruction_block_t>
     > instruction_t;
+
+    struct if_else_t {
+        expression::expression_t       condition;
+        instruction_t                  if_instruction;
+        boost::optional<instruction_t> else_instruction;
+    };
+
+    struct instruction_block_t {
+        std::vector<instruction_t> instructions;
+    };
 
 } // namespace bf::instruction
 
@@ -230,6 +246,16 @@ BOOST_FUSION_ADAPT_STRUCT(
         (std::string, variable_name))
 
 BOOST_FUSION_ADAPT_STRUCT(
+        bf::instruction::if_else_t,
+        (bf::expression::expression_t,                    condition)
+        (bf::instruction::instruction_t,                  if_instruction)
+        (boost::optional<bf::instruction::instruction_t>, else_instruction))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::instruction::instruction_block_t,
+        (std::vector<bf::instruction::instruction_t>, instructions))
+
+BOOST_FUSION_ADAPT_STRUCT(
         bf::function_t,
         (std::string,                                 name)
         (std::vector<std::string>,                    parameters)
@@ -286,9 +312,8 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         template <typename other_expression_t,
             typename std::enable_if<!std::is_base_of<expression::binary_operation_base, other_expression_t>::value>::type* = nullptr>
         expression::expression_t &operator()(other_expression_t &attr) const {
-            assert(0); // child_visitor is never used for non-binary operations!
-            expression::expression_t *null = nullptr;
-            return *null;
+            assert(false); // child_visitor is never used for non-binary operations!
+            return *(expression::expression_t*) nullptr;
         }
 
     private:
@@ -335,7 +360,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         function = qi::lexeme["function"] > function_name
                  > '(' > -(variable_name % ',') > ')'
                  > '{' > *instruction > '}';
-        #define KEYWORDS (qi::lit("function") | "var" | "print" | "scan")
+        #define KEYWORDS (qi::lit("function") | "var" | "print" | "scan" | "if" | "else")
         function_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
         variable_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
 
@@ -398,7 +423,9 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
                     | variable_assignment
                     | print_variable
                     | print_text
-                    | scan_variable;
+                    | scan_variable
+                    | instruction_block
+                    | if_else;
 
         function_call        = function_name >> '(' > -(variable_name % ',') > ')' > ';';
         variable_declaration = qi::lexeme["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u})) > ';';
@@ -406,6 +433,8 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         print_variable       = qi::lexeme["print"] >> variable_name > ';';
         print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'] > ';';
         scan_variable        = qi::lexeme["scan"] > variable_name > ';';
+        if_else              = qi::lexeme["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);
+        instruction_block    = '{' > *instruction > '}';
 
         program.name("program");                           // debug(program);
         function.name("function");                         // debug(function);
@@ -444,6 +473,8 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         print_variable.name("print variable");             // debug(print_variable);
         print_text.name("print text");                     // debug(print_text);
         scan_variable.name("scan variable");               // debug(scan_variable);
+        if_else.name("if / else");                         // debug(if_else);
+        instruction_block.name("instruction block");       // debug(instruction_block);
 
 		// Print error message on parse failure.
         auto on_error = [](auto first, auto last, auto err, auto what) {
@@ -503,6 +534,8 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     qi::rule<iterator, instruction::print_variable_t(),       ascii::space_type> print_variable;
     qi::rule<iterator, instruction::print_text_t(),           ascii::space_type> print_text;
     qi::rule<iterator, instruction::scan_variable_t(),        ascii::space_type> scan_variable;
+    qi::rule<iterator, instruction::if_else_t(),              ascii::space_type> if_else;
+    qi::rule<iterator, instruction::instruction_block_t(),    ascii::space_type> instruction_block;
 };
 
 // ----- Parse source to AST ---------------------------------------------------
@@ -743,7 +776,10 @@ public:
         m_scope.emplace_back();
         // TODO: Copy/handle arguments
         // Restore old scope after the function returns.
-        SCOPE_EXIT {std::swap(m_scope, scope_backup);};
+        SCOPE_EXIT {
+            m_scope.pop_back();
+            std::swap(m_scope, scope_backup);
+        };
 
         // Just for error report on recursion: Keep track of the call stack.
         m_call_stack.push_back(i.function_name);
@@ -790,6 +826,39 @@ public:
     // ----- Scan variable -----------------------------------------------------
     void operator()(const instruction::scan_variable_t &i) {
         get_var(i.variable_name)->read_input();
+    }
+
+    // ----- Conditional statement ---------------------------------------------
+    void operator()(const instruction::if_else_t &i) {
+        auto condition = m_bfg.new_var("_if_condition");
+        auto visitor = expression_visitor(m_bfg, m_scope, condition);
+        boost::apply_visitor(visitor, i.condition);
+        
+        m_bfg.if_begin(*condition);
+        {
+            // Provide a new scope for "then" part.
+            m_scope.emplace_back();
+            SCOPE_EXIT {m_scope.pop_back();};
+            boost::apply_visitor(*this, i.if_instruction);
+        }
+        if (i.else_instruction) {
+            m_bfg.else_begin();
+            // Provide a new scope for "else" part.
+            m_scope.emplace_back();
+            SCOPE_EXIT {m_scope.pop_back();};
+            boost::apply_visitor(*this, *i.else_instruction);
+        }
+        m_bfg.if_end();
+    }
+
+    // ----- Instruction block -------------------------------------------------
+    void operator()(const instruction::instruction_block_t &i) {
+        // Provide a new scope for variable names.
+        m_scope.emplace_back();
+        SCOPE_EXIT {m_scope.pop_back();};
+
+        for (const auto &instruction : i.instructions)
+            boost::apply_visitor(*this, instruction);
     }
 
     const generator &get_generator() const {

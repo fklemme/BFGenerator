@@ -218,6 +218,68 @@ BOOST_AUTO_TEST_CASE(compiler_comp_op_precedence) {
     bfc_check(program, "Comparisons operator precedence", {}, {1, 1, 0});
 }
 
+// ----- Compiler: Conditional statements --------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_conditional_statements) {
+    const std::string source = R"(
+        function main() {
+            if (2 < 5)
+                print "test";
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+    const std::string result = "test";
+
+    bfc_check(program, "Conditional statements", {}, {result.begin(), result.end()});
+}
+
+// ----- Compiler: Conditional statements 2 --------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_conditional_statements_2) {
+    const std::string source = R"(
+        function main() {
+            if (2 > 5)
+                print "fail";
+            else
+                print "test";
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+    const std::string result = "test";
+
+    bfc_check(program, "Conditional statements 2", {}, {result.begin(), result.end()});
+}
+
+// ----- Compiler: Conditionals and scopes -------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_conditionals_scopes) {
+    const std::string source = R"(
+        function main() {
+            var tmp = 5;
+            if (tmp == 5) {
+                var tmp = 7;
+                tmp = tmp + 2;
+
+                if (tmp == 9)
+                    print "res";
+            }
+
+            tmp = tmp - 3;
+            if (tmp == 2)
+                print "ult";
+            else
+                print "fail";
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+    const std::string result = "result";
+
+    bfc_check(program, "Conditionals and scopes", {}, {result.begin(), result.end()});
+}
+
 // ----- Compiler: No main function --------------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_no_main_function) {
 	const std::string source = R"(

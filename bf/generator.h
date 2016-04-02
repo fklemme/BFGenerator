@@ -113,4 +113,4 @@ private:
     const unsigned    m_pos;
 };
 
-} // namespace
+} // namespace bf

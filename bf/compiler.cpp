@@ -1,3 +1,9 @@
+#ifdef _WIN32
+// Suppress warnings...
+#pragma warning(disable : 4348) // from boost spirit
+#pragma warning(disable : 4180) // from boost proto
+#endif
+
 #include "compiler.h"
 #include "generator.h"
 #include "scope_exit.h"
@@ -28,8 +34,8 @@ namespace expression {
     // Forward declarations
     struct variable_t;
     struct value_t;
-    template <operator_t op> struct unary_operation_t;
     template <operator_t op> struct binary_operation_t;
+    template <operator_t op> struct unary_operation_t;
     struct parenthesized_expression_t;
 
     typedef boost::variant<
@@ -57,18 +63,18 @@ namespace expression {
     struct value_t {
         unsigned value;
     };
+    
+    struct binary_operation_base {}; // For type traits
+
+    template <operator_t op>
+    struct binary_operation_t : binary_operation_base {
+        expression_t lhs;
+        expression_t rhs;
+    };
 
     template <operator_t op>
     struct unary_operation_t {
         expression_t expression;
-    };
-    
-    struct binary_operation_tag {}; // For type traits
-
-    template <operator_t op>
-    struct binary_operation_t : binary_operation_tag {
-        expression_t lhs;
-        expression_t rhs;
     };
 
     struct parenthesized_expression_t {
@@ -229,7 +235,7 @@ BOOST_FUSION_ADAPT_STRUCT(
         (std::vector<std::string>,                    parameters)
         (std::vector<bf::instruction::instruction_t>, instructions))
 
-// ----- Parser grammar --------------------------------------------------------
+// ----- Parser description ----------------------------------------------------
 namespace bf {
 
 namespace qi    = boost::spirit::qi;
@@ -237,7 +243,7 @@ namespace ascii = boost::spirit::ascii;
 
 template <typename iterator>
 struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
-    // TODO: Descripe circumstances here!
+    // TODO: Descripe necessity of AST rotation here!
 
     // Helper: Get operator precedence of arbitrary binary operation.
     class precedence_visitor : public boost::static_visitor<int> {
@@ -258,7 +264,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
 
         template <typename other_expression_t>
         int operator()(const other_expression_t&) const {
-            return 0;
+            return 0; // Placeholder. No binary operation.
         }
     };
 
@@ -269,7 +275,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         child_visitor(side_t side) : m_side(side) {}
 
         template <typename binary_operation_t,
-            typename std::enable_if<std::is_base_of<expression::binary_operation_tag, binary_operation_t>::value>::type* = nullptr>
+            typename std::enable_if<std::is_base_of<expression::binary_operation_base, binary_operation_t>::value>::type* = nullptr>
         expression::expression_t &operator()(binary_operation_t &attr) const {
             if (m_side == side_t::left)
                 return attr.lhs;
@@ -278,9 +284,9 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         }
 
         template <typename other_expression_t,
-            typename std::enable_if<!std::is_base_of<expression::binary_operation_tag, other_expression_t>::value>::type* = nullptr>
+            typename std::enable_if<!std::is_base_of<expression::binary_operation_base, other_expression_t>::value>::type* = nullptr>
         expression::expression_t &operator()(other_expression_t &attr) const {
-            assert(0); // child_visitor is never called for non-binary operations!
+            assert(0); // child_visitor is never used for non-binary operations!
             expression::expression_t *null = nullptr;
             return *null;
         }
@@ -291,18 +297,18 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
 
     // Rotate/Rearrange nodes in AST so that operators are applied in correct order later on.
     static expression::expression_t rotate(expression::expression_t attr, expression::expression_t rhs) {
-        child_visitor left (side_t::left);
-        child_visitor right(side_t::right);
+        const child_visitor left (side_t::left);
+        const child_visitor right(side_t::right);
 
         // Rotate nodes #1
         boost::apply_visitor(right, attr) = boost::apply_visitor(left, rhs); // attr.rhs = rhs.lhs;
 
         // If the new right child of 'attr' is still a binary operation with the same precedence, keep rotating. (recursive)
-        const auto &attr_rhs = boost::apply_visitor(right, attr);
+        const auto &new_rhs = boost::apply_visitor(right, attr);
         const int attr_precedence = boost::apply_visitor(precedence_visitor(), attr);
-        const int rhs_precedence  = boost::apply_visitor(precedence_visitor(), attr_rhs);
-        if (attr_precedence == rhs_precedence)
-            attr = rotate(attr, attr_rhs);
+        const int nrhs_precedence = boost::apply_visitor(precedence_visitor(), new_rhs);
+        if (attr_precedence == nrhs_precedence)
+            attr = rotate(attr, new_rhs);
 
         // Rotate nodes #2
         boost::apply_visitor(left, rhs) = attr; // rhs.lhs = attr;
@@ -310,7 +316,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         return rhs;
     }
 
-    // On binary operator: Check if rotation of nodes is necessary.
+    // On binary operation: Check if rotation of nodes is necessary and assign result.
     typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
     static void check_rotate(expression::expression_t attr, typename expression_rule_t::context_type &context) {
         const auto &attr_rhs = boost::apply_visitor(child_visitor(side_t::right), attr);
@@ -323,6 +329,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
             boost::fusion::at_c<0>(context.attributes) = attr;
     };
 
+    // ----- Parser grammar ----------------------------------------------------
     grammar() : grammar::base_type(program) {
         program  = *function;
         function = qi::lexeme["function"] > function_name
@@ -534,14 +541,17 @@ public:
         m_var_stack.push_back(var_ptr);
     }
 
+    // ----- Variable ----------------------------------------------------------
     void operator()(const expression::variable_t &e) {
         m_var_stack.back()->copy(*get_var(e.variable_name));
     }
 
+    // ----- Value -------------------------------------------------------------
     void operator()(const expression::value_t &e) {
         m_var_stack.back()->set(e.value);
     }
     
+    // ----- Binary or ---------------------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::or_> &e) {
         if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
             if (v->value)
@@ -558,6 +568,7 @@ public:
         }
     }
 
+    // ----- Binary and --------------------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::and_> &e) {
         if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
             if (v->value)
@@ -574,6 +585,7 @@ public:
         }
     }
 
+    // ----- Binary equal ------------------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::eq> &e) {
         boost::apply_visitor(*this, e.lhs);
         auto rhs_ptr = m_bfg.new_var("_binary_eq_rhs");
@@ -583,6 +595,7 @@ public:
         m_var_stack.back()->equal(*rhs_ptr);
     }
 
+    // ----- Binary not equal --------------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::neq> &e) {
         boost::apply_visitor(*this, e.lhs);
         auto rhs_ptr = m_bfg.new_var("_binary_neq_rhs");
@@ -592,6 +605,7 @@ public:
         m_var_stack.back()->not_equal(*rhs_ptr);
     }
 
+    // ----- Binary lower than -------------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::lt> &e) {
         boost::apply_visitor(*this, e.lhs);
         auto rhs_ptr = m_bfg.new_var("_binary_lt_rhs");
@@ -601,6 +615,7 @@ public:
         m_var_stack.back()->lower_than(*rhs_ptr);
     }
 
+    // ----- Binary lower equal ------------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::leq> &e) {
         boost::apply_visitor(*this, e.lhs);
         auto rhs_ptr = m_bfg.new_var("_binary_leq_rhs");
@@ -610,6 +625,7 @@ public:
         m_var_stack.back()->lower_equal(*rhs_ptr);
     }
 
+    // ----- Binary greater than -----------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::gt> &e) {
         boost::apply_visitor(*this, e.lhs);
         auto rhs_ptr = m_bfg.new_var("_binary_gt_rhs");
@@ -619,6 +635,7 @@ public:
         m_var_stack.back()->greater_than(*rhs_ptr);
     }
 
+    // ----- Binary greater equal ----------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::geq> &e) {
         boost::apply_visitor(*this, e.lhs);
         auto rhs_ptr = m_bfg.new_var("_binary_geq_rhs");
@@ -628,6 +645,7 @@ public:
         m_var_stack.back()->greater_equal(*rhs_ptr);
     }
 
+    // ----- Binary add --------------------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::add> &e) {
         boost::apply_visitor(*this, e.lhs);
         if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
@@ -641,6 +659,7 @@ public:
         }
     }
 
+    // ----- Binary subtract ---------------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::sub> &e) {
         boost::apply_visitor(*this, e.lhs);
         if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
@@ -654,6 +673,7 @@ public:
         }
     }
 
+    // ----- Binary multiply ---------------------------------------------------
     void operator()(const expression::binary_operation_t<expression::operator_t::mul> &e) {
         boost::apply_visitor(*this, e.lhs);
         if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
@@ -667,11 +687,13 @@ public:
         }
     }
 
+    // ----- Unary not ---------------------------------------------------------
     void operator()(const expression::unary_operation_t<expression::operator_t::not_> &e) {
         boost::apply_visitor(*this, e.expression);
         m_var_stack.back()->bool_not(*m_var_stack.back());
     }
 
+    // ----- Parenthesized expression ------------------------------------------
     void operator()(const expression::parenthesized_expression_t &e) {
         boost::apply_visitor(*this, e.expression);
     }
@@ -785,7 +807,7 @@ private:
         throw std::logic_error("Variable not declared in this scope: " + variable_name);
     }
 
-    program_t                m_program; // TODO: just const ref?
+    const program_t          &m_program;
     generator                m_bfg;
     scope_tree_t             m_scope;
     std::vector<std::string> m_call_stack;
@@ -807,4 +829,4 @@ std::string compiler::compile(const std::string &source) const {
     return generate(program);
 }
 
-} // namespace
+} // namespace bf

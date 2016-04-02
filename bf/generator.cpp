@@ -583,4 +583,4 @@ var::~var() {
     m_gen.m_pos_to_var.erase(m_pos);
 }
 
-} // namespace
+} // namespace bf

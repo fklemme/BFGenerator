@@ -95,4 +95,4 @@ private:
     mutable std::vector<memory_type>   m_output_buffer;
 };
 
-} // namespace
+} // namespace bf

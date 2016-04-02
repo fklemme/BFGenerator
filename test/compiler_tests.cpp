@@ -265,6 +265,9 @@ BOOST_AUTO_TEST_CASE(compiler_conditionals_scopes) {
                     print "res";
             }
 
+            if (1 != 0)
+                var tmp = 27;
+
             tmp = tmp - 3;
             if (tmp == 2)
                 print "ult";
@@ -278,6 +281,26 @@ BOOST_AUTO_TEST_CASE(compiler_conditionals_scopes) {
     const std::string result = "result";
 
     bfc_check(program, "Conditionals and scopes", {}, {result.begin(), result.end()});
+}
+
+// ----- Compiler: While loop --------------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_while_loop) {
+    const std::string source = R"(
+        function main() {
+            var a = 2;
+            var b = 7;
+            while (a < b) {
+                print "x";
+                b = b - 1;
+            }
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+    const std::string result = "xxxxx";
+
+    bfc_check(program, "While loop", {}, {result.begin(), result.end()});
 }
 
 // ----- Compiler: No main function --------------------------------------------

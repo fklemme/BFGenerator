@@ -195,6 +195,29 @@ BOOST_AUTO_TEST_CASE(compiler_comparisons_2) {
     bfc_check(program, "Comparisons 2", {}, {1, 0, 1, 0, 0});
 }
 
+// ----- Compiler: Comparisons operator precedence -----------------------------
+BOOST_AUTO_TEST_CASE(compiler_comp_op_precedence) {
+    const std::string source = R"(
+        function main() {
+            var a = 2;
+            var b = 5;
+            var c = 2;
+            var t_implicit = a < b < c;
+            var t_explicit = (a < b) < c;
+            var f_explicit = a < (b < c);
+
+            print t_implicit;
+            print t_explicit;
+            print f_explicit;
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Comparisons operator precedence", {}, {1, 1, 0});
+}
+
 // ----- Compiler: No main function --------------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_no_main_function) {
 	const std::string source = R"(

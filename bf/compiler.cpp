@@ -15,6 +15,7 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 // ----- Syntax tree structs ---------------------------------------------------
@@ -62,8 +63,10 @@ namespace expression {
         expression_t expression;
     };
     
+    struct binary_operation_tag {}; // For type traits
+
     template <operator_t op>
-    struct binary_operation_t {
+    struct binary_operation_t : binary_operation_tag {
         expression_t lhs;
         expression_t rhs;
     };
@@ -235,43 +238,71 @@ namespace ascii = boost::spirit::ascii;
 template <typename iterator>
 struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     // TODO: Descripe circumstances here!
-    typedef expression::binary_operation_t<expression::operator_t::add> binary_op_add_t;
-    typedef expression::binary_operation_t<expression::operator_t::sub> binary_op_sub_t;
-    typedef boost::variant<binary_op_add_t, binary_op_sub_t>            binary_op_term_t;
+
+    // Helper: Get operator precedence of arbitrary binary operation.
+    class precedence_visitor : public boost::static_visitor<int> {
+    public:
+        // Return value represents C operator precedence.
+        // See: http://en.cppreference.com/w/c/language/operator_precedence
+        int operator()(const expression::binary_operation_t<expression::operator_t::or_>&)  const {return 12;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::and_>&) const {return 11;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::eq>&)   const {return 7;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::neq>&)  const {return 7;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::lt>&)   const {return 6;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::leq>&)  const {return 6;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::gt>&)   const {return 6;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::geq>&)  const {return 6;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::add>&)  const {return 4;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::sub>&)  const {return 4;}
+        int operator()(const expression::binary_operation_t<expression::operator_t::mul>&)  const {return 3;}
+
+        template <typename other_expression_t>
+        int operator()(const other_expression_t&) const {
+            return 0;
+        }
+    };
 
     // Helper: Get left/right hand side of arbitrary binary operation.
     enum class side_t {left, right};
-    class get_child : public boost::static_visitor<expression::expression_t&> {
+    class child_visitor : public boost::static_visitor<expression::expression_t&> {
     public:
-        get_child(side_t side) : m_side(side) {}
+        child_visitor(side_t side) : m_side(side) {}
 
-        template <typename binary_op_t>
-        expression::expression_t &operator()(binary_op_t &attr) {
+        template <typename binary_operation_t,
+            typename std::enable_if<std::is_base_of<expression::binary_operation_tag, binary_operation_t>::value>::type* = nullptr>
+        expression::expression_t &operator()(binary_operation_t &attr) const {
             if (m_side == side_t::left)
                 return attr.lhs;
             else
                 return attr.rhs;
         }
 
+        template <typename other_expression_t,
+            typename std::enable_if<!std::is_base_of<expression::binary_operation_tag, other_expression_t>::value>::type* = nullptr>
+        expression::expression_t &operator()(other_expression_t &attr) const {
+            assert(0); // child_visitor is never called for non-binary operations!
+            expression::expression_t *null = nullptr;
+            return *null;
+        }
+
     private:
         side_t m_side;
     };
 
-    // Rotate/Rearrange nodes in AST so that subtraction operators are applied correctly later on.
-    static binary_op_term_t rotate(binary_op_term_t attr, binary_op_term_t rhs) {
-        get_child left (side_t::left);
-        get_child right(side_t::right);
+    // Rotate/Rearrange nodes in AST so that operators are applied in correct order later on.
+    static expression::expression_t rotate(expression::expression_t attr, expression::expression_t rhs) {
+        child_visitor left (side_t::left);
+        child_visitor right(side_t::right);
 
         // Rotate nodes #1
         boost::apply_visitor(right, attr) = boost::apply_visitor(left, rhs); // attr.rhs = rhs.lhs;
 
-        // If the new right child of 'attr' is still a binary operation, keep rotating. (recursive)
+        // If the new right child of 'attr' is still a binary operation with the same precedence, keep rotating. (recursive)
         const auto &attr_rhs = boost::apply_visitor(right, attr);
-        if (const binary_op_add_t *attr_rhs_ptr = boost::get<binary_op_add_t>(&attr_rhs))
-            attr = rotate(attr, *attr_rhs_ptr);
-        else if (const binary_op_sub_t *attr_rhs_ptr = boost::get<binary_op_sub_t>(&attr_rhs))
-            attr = rotate(attr, *attr_rhs_ptr);
-        // else impossible
+        const int attr_precedence = boost::apply_visitor(precedence_visitor(), attr);
+        const int rhs_precedence  = boost::apply_visitor(precedence_visitor(), attr_rhs);
+        if (attr_precedence == rhs_precedence)
+            attr = rotate(attr, attr_rhs);
 
         // Rotate nodes #2
         boost::apply_visitor(left, rhs) = attr; // rhs.lhs = attr;
@@ -279,13 +310,15 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         return rhs;
     }
 
-    // On binary subtraction operator: Check if rotation of nodes is necessary.
+    // On binary operator: Check if rotation of nodes is necessary.
     typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
-    static void on_binary_sub(const binary_op_sub_t &attr, typename expression_rule_t::context_type &context) {
-        if (const binary_op_add_t *rhs = boost::get<binary_op_add_t>(&attr.rhs))
-            boost::fusion::at_c<0>(context.attributes) = rotate(attr, *rhs);
-        else if (const binary_op_sub_t *rhs = boost::get<binary_op_sub_t>(&attr.rhs))
-            boost::fusion::at_c<0>(context.attributes) = rotate(attr, *rhs);
+    static void check_rotate(expression::expression_t attr, typename expression_rule_t::context_type &context) {
+        const auto &attr_rhs = boost::apply_visitor(child_visitor(side_t::right), attr);
+        const int attr_precedence = boost::apply_visitor(precedence_visitor(), attr);
+        const int rhs_precedence  = boost::apply_visitor(precedence_visitor(), attr_rhs);
+
+        if (attr_precedence == rhs_precedence)
+            boost::fusion::at_c<0>(context.attributes) = rotate(attr, attr_rhs);
         else // No rotation, pass through.
             boost::fusion::at_c<0>(context.attributes) = attr;
     };
@@ -304,35 +337,42 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         expression = expression_12.alias();
 
         // 12: Logical OR
-        expression_12 = binary_or | expression_11;
+        expression_12 = binary_or     [check_rotate]       // Rotate if necessary
+                      | expression_11 [qi::_val = qi::_1]; // Pass through
         binary_or     = expression_11 >> qi::lexeme["||"] > expression_12;
 
         // 11: Logical AND
-        expression_11 = binary_and | expression_7;
+        expression_11 = binary_and   [check_rotate]       // Rotate if necessary
+                      | expression_7 [qi::_val = qi::_1]; // Pass through
         binary_and    = expression_7 >> qi::lexeme["&&"] > expression_11;
 
         // 7: For relational == and != respectively
-        expression_7 = binary_eq | binary_neq | expression_6;
+        expression_7 = binary_eq    [check_rotate]       // Rotate if necessary
+                     | binary_neq   [check_rotate]       // Rotate if necessary
+                     | expression_6 [qi::_val = qi::_1]; // Pass through
         binary_eq    = expression_6 >> qi::lexeme["=="] > expression_7;
         binary_neq   = expression_6 >> qi::lexeme["!="] > expression_7;
 
         // 6: For relational operators < and <= respectively
         //    For relational operators > and >= respectively
-        expression_6 = binary_lt | binary_leq | binary_gt | binary_geq | expression_4;
+        expression_6 = binary_lt[check_rotate] | binary_leq[check_rotate]
+                     | binary_gt[check_rotate] | binary_geq[check_rotate]
+                     | expression_4[qi::_val = qi::_1]; // Pass through
         binary_lt    = expression_4 >>            '<'   > expression_6;
         binary_leq   = expression_4 >> qi::lexeme["<="] > expression_6;
         binary_gt    = expression_4 >>            '>'   > expression_6;
         binary_geq   = expression_4 >> qi::lexeme[">="] > expression_6;
 
         // 4: Addition and subtraction
-        expression_4  = binary_add   [qi::_val = qi::_1]  // Pass through
-                      | binary_sub   [on_binary_sub]      // Check if rotation is necessary
+        expression_4  = binary_add   [check_rotate]       // Rotate if necessary
+                      | binary_sub   [check_rotate]       // Rotate if necessary
                       | expression_3 [qi::_val = qi::_1]; // Pass through
         binary_add    = expression_3 >> '+' > expression_4;
         binary_sub    = expression_3 >> '-' > expression_4;
 
         // 3: Multiplication
-        expression_3 = binary_mul | expression_2;
+        expression_3 = binary_mul   [check_rotate]       // Rotate if necessary
+                     | expression_2 [qi::_val = qi::_1]; // Pass through
         binary_mul   = expression_2 >> '*' > expression_3;
 
         // 2: Logical NOT

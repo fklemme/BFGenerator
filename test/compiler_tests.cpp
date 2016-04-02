@@ -179,18 +179,20 @@ BOOST_AUTO_TEST_CASE(compiler_comparisons_2) {
             var f1 = a > b || 0;
             var t2 = a > b && 0 || 1;
             var f2 = a == b && a != b;
+            var f3 = 1 > 2 || 5 == 6;
 
             print t1;
             print f1;
             print t2;
             print f2;
+            print f3;
         }
     )";
 
     bf::compiler bfc;
     const std::string program = bfc.compile(source);
 
-    bfc_check(program, "Comparisons 2", {}, {1, 0, 1, 0});
+    bfc_check(program, "Comparisons 2", {}, {1, 0, 1, 0, 0});
 }
 
 // ----- Compiler: No main function --------------------------------------------

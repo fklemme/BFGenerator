@@ -387,7 +387,7 @@ void var::multiply(const var &v) {
 void var::bool_not(const var &v) {
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
-            " Set '" + m_name + "' to not '" + v.m_name + "'",
+            " Set '" + m_name + "' to (bool) not '" + v.m_name + "'",
             m_gen.m_indention);
 
     // array = {1 (result), a}
@@ -410,7 +410,7 @@ void var::bool_not(const var &v) {
 void var::bool_and(const var &v) {
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
-            " Set '" + m_name + "' to '" + m_name + "' and '" + v.m_name + "'",
+            " Set '" + m_name + "' to '" + m_name + "' (bool) and '" + v.m_name + "'",
             m_gen.m_indention);
 
     if (&v != this) {
@@ -445,7 +445,41 @@ void var::bool_and(const var &v) {
 }
 
 void var::bool_or(const var &v) {
-    assert(0); // TODO: Implement
+    m_gen.m_out.emplace_back("", "", // NOP
+            "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
+            " Set '" + m_name + "' to '" + m_name + "' (bool) or '" + v.m_name + "'",
+            m_gen.m_indention);
+
+    if (&v != this) {
+        // array = {0, a (result), b}
+        auto array = m_gen.new_var_array<3>("_or");
+        array[0]->set(0);
+        array[1]->move(*this);
+        array[2]->copy(v);
+
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[1]),
+                "[<+>[-]]"     // If (a > 0), incr. [0] and clear a,
+                ">[<<+>>[-]]<" // if (b > 0), incr. [0] and clear b,
+                "<[>+<[-]]>",  // if ([0] > 0), set a (result) to 1.
+                "Operation sequence for 'or'",
+                m_gen.m_indention);
+
+        // Move result to *this
+        this->move(*array[1]);
+    } else {
+        // array = {0 (result), a}
+        auto array = m_gen.new_var_array<2>("_or");
+        array[0]->set(0);
+        array[1]->move(*this);
+
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[1]),
+                "[<+>[-]]", // If (a > 0), set result to 1 and clear a.
+                "Operation sequence for 'or'",
+                m_gen.m_indention);
+
+        // Move result to *this
+        this->move(*array[0]);
+    }
 }
 
 void var::lower_than(const var &v) {

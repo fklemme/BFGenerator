@@ -448,12 +448,12 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         parenthesized = '(' > expression > ')';
 
         // Instructions
-        instruction = function_call        > ';'
-                    | variable_declaration > ';'
-                    | variable_assignment  > ';'
-                    | print_variable       > ';'
-                    | print_text           > ';'
-                    | scan_variable        > ';'
+        instruction = (function_call        > ';')
+                    | (variable_declaration > ';')
+                    | (variable_assignment  > ';')
+                    | (print_variable       /*> ';'*/) // TODO!!!?
+                    | (print_text           /*> ';'*/)
+                    | (scan_variable        /*> ';'*/)
                     | if_else
                     | while_loop
                     | for_loop

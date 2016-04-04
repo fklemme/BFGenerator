@@ -87,7 +87,8 @@ namespace expression {
 namespace instruction {
 
     struct function_call_t {
-        std::string function_name;
+        std::string              function_name;
+        std::vector<std::string> variable_names;
     };
 
     struct variable_declaration_t {
@@ -237,7 +238,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::function_call_t,
-        (std::string, function_name))
+        (std::string,              function_name)
+        (std::vector<std::string>, variable_names))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::variable_declaration_t,

@@ -303,6 +303,22 @@ BOOST_AUTO_TEST_CASE(compiler_while_loop) {
     bfc_check(program, "While loop", {}, {result.begin(), result.end()});
 }
 
+// ----- Compiler: For loop ----------------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_for_loop) {
+    const std::string source = R"(
+        function main() {
+            for (var i = 2; i < 7; i = i + 1)
+                print "x";
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+    const std::string result = "xxxxx";
+
+    bfc_check(program, "For loop", {}, {result.begin(), result.end()});
+}
+
 // ----- Compiler: No main function --------------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_no_main_function) {
 	const std::string source = R"(

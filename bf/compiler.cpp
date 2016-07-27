@@ -146,7 +146,7 @@ namespace instruction {
         boost::optional<instruction_t> initialization;
         expression::expression_t       condition;
         boost::optional<instruction_t> post_loop;
-        instruction_t                  loop_body;
+        instruction_t                  instruction;
     };
 
     struct instruction_block_t {
@@ -279,7 +279,7 @@ BOOST_FUSION_ADAPT_STRUCT(
         (boost::optional<bf::instruction::instruction_t>, initialization)
         (bf::expression::expression_t,                    condition)
         (boost::optional<bf::instruction::instruction_t>, post_loop)
-        (bf::instruction::instruction_t,                  loop_body))
+        (bf::instruction::instruction_t,                  instruction))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::instruction_block_t,
@@ -451,9 +451,9 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         instruction = (function_call        > ';')
                     | (variable_declaration > ';')
                     | (variable_assignment  > ';')
-                    | (print_variable       /*> ';'*/) // TODO!!!?
-                    | (print_text           /*> ';'*/)
-                    | (scan_variable        /*> ';'*/)
+                    | print_variable // Implicit semicolon TODO!!!?
+                    | print_text     // Implicit semicolon
+                    | scan_variable  // Implicit semicolon
                     | if_else
                     | while_loop
                     | for_loop
@@ -462,9 +462,9 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         function_call        = function_name >> '(' > -(variable_name % ',') > ')';
         variable_declaration = qi::lexeme["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u}));
         variable_assignment  = variable_name >> '=' > expression;
-        print_variable       = qi::lexeme["print"] >> variable_name;
-        print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'];
-        scan_variable        = qi::lexeme["scan"] > variable_name;
+        print_variable       = qi::lexeme["print"] >> variable_name > ';';
+        print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'] > ';';
+        scan_variable        = qi::lexeme["scan"] > variable_name > ';';
         if_else              = qi::lexeme["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);
         while_loop           = qi::lexeme["while"] > '(' > expression > ')' > instruction;
         for_loop             = qi::lexeme["for"] > '(' > -for_initialization > ';' > for_expression > ';' > -for_post_loop > ')' > instruction;
@@ -918,7 +918,31 @@ public:
 
     // ----- For loop ----------------------------------------------------------
     void operator()(const instruction::for_loop_t &i) {
-        // TODO: Impl.
+        // Provide a new scope for loop header.
+        m_scope.emplace_back();
+        SCOPE_EXIT {m_scope.pop_back();};
+
+        if (i.initialization)
+            boost::apply_visitor(*this, *i.initialization);
+
+        auto condition = m_bfg.new_var("_for_condition");
+        auto visitor = expression_visitor(m_bfg, m_scope, condition);
+        boost::apply_visitor(visitor, i.condition);
+
+        m_bfg.while_begin(*condition);
+        {
+            // Provide a new scope for loop body.
+            m_scope.emplace_back();
+            SCOPE_EXIT {m_scope.pop_back();};
+            boost::apply_visitor(*this, i.instruction);
+        }
+        // Post-loop instruction.
+        if (i.post_loop)
+            boost::apply_visitor(*this, *i.post_loop);
+
+        // Re-evaluate condition.
+        boost::apply_visitor(visitor, i.condition);
+        m_bfg.while_end(*condition);
     }
 
     // ----- Instruction block -------------------------------------------------

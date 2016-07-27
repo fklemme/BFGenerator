@@ -115,7 +115,6 @@ namespace instruction {
 
     struct if_else_t;
     struct while_loop_t;
-    struct for_loop_t;
     struct instruction_block_t;
 
     typedef boost::variant<
@@ -127,7 +126,6 @@ namespace instruction {
         scan_variable_t,
         boost::recursive_wrapper<if_else_t>,
         boost::recursive_wrapper<while_loop_t>,
-        boost::recursive_wrapper<for_loop_t>,
         boost::recursive_wrapper<instruction_block_t>
     > instruction_t;
 
@@ -140,13 +138,6 @@ namespace instruction {
     struct while_loop_t {
         expression::expression_t condition;
         instruction_t            instruction;
-    };
-
-    struct for_loop_t {
-        boost::optional<instruction_t> initialization;
-        expression::expression_t       condition;
-        boost::optional<instruction_t> post_loop;
-        instruction_t                  loop_body;
     };
 
     struct instruction_block_t {
@@ -275,13 +266,6 @@ BOOST_FUSION_ADAPT_STRUCT(
         (bf::instruction::instruction_t, instruction))
 
 BOOST_FUSION_ADAPT_STRUCT(
-        bf::instruction::for_loop_t,
-        (boost::optional<bf::instruction::instruction_t>, initialization)
-        (bf::expression::expression_t,                    condition)
-        (boost::optional<bf::instruction::instruction_t>, post_loop)
-        (bf::instruction::instruction_t,                  loop_body))
-
-BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::instruction_block_t,
         (std::vector<bf::instruction::instruction_t>, instructions))
 
@@ -390,7 +374,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         function = qi::lexeme["function"] > function_name
                  > '(' > -(variable_name % ',') > ')'
                  > '{' > *instruction > '}';
-        #define KEYWORDS (qi::lit("function") | "var" | "print" | "scan" | "if" | "else" | "while" | "for")
+        #define KEYWORDS (qi::lit("function") | "var" | "print" | "scan" | "if" | "else" | "while")
         function_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
         variable_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
 
@@ -448,29 +432,24 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         parenthesized = '(' > expression > ')';
 
         // Instructions
-        instruction = (function_call        > ';')
-                    | (variable_declaration > ';')
-                    | (variable_assignment  > ';')
-                    | (print_variable       /*> ';'*/) // TODO!!!?
-                    | (print_text           /*> ';'*/)
-                    | (scan_variable        /*> ';'*/)
+        instruction = function_call
+                    | variable_declaration
+                    | variable_assignment
+                    | print_variable
+                    | print_text
+                    | scan_variable
                     | if_else
                     | while_loop
-                    | for_loop
                     | instruction_block;
 
-        function_call        = function_name >> '(' > -(variable_name % ',') > ')';
-        variable_declaration = qi::lexeme["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u}));
-        variable_assignment  = variable_name >> '=' > expression;
-        print_variable       = qi::lexeme["print"] >> variable_name;
-        print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'];
-        scan_variable        = qi::lexeme["scan"] > variable_name;
+        function_call        = function_name >> '(' > -(variable_name % ',') > ')' > ';';
+        variable_declaration = qi::lexeme["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u})) > ';';
+        variable_assignment  = variable_name >> '=' > expression > ';';
+        print_variable       = qi::lexeme["print"] >> variable_name > ';';
+        print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'] > ';';
+        scan_variable        = qi::lexeme["scan"] > variable_name > ';';
         if_else              = qi::lexeme["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);
         while_loop           = qi::lexeme["while"] > '(' > expression > ')' > instruction;
-        for_loop             = qi::lexeme["for"] > '(' > -for_initialization > ';' > for_expression > ';' > -for_post_loop > ')' > instruction;
-        for_initialization   = variable_declaration | variable_assignment;
-        for_expression       = expression | qi::attr(expression::value_t{1u});
-        for_post_loop        = variable_assignment.alias();
         instruction_block    = '{' > *instruction > '}';
 
         program.name("program");                           // debug(program);
@@ -512,13 +491,9 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         scan_variable.name("scan variable");               // debug(scan_variable);
         if_else.name("if / else");                         // debug(if_else);
         while_loop.name("while loop");                     // debug(while_loop);
-        for_loop.name("for loop");                         // debug(for_loop);
-        for_initialization.name("for initialization");     // debug(for_initialization);
-        for_expression.name("for expression");             // debug(for_expression);
-        for_post_loop.name("for post loop");               // debug(for_post_loop);
         instruction_block.name("instruction block");       // debug(instruction_block);
 
-		// Print error message on parse failure.
+        // Print error message on parse failure.
         auto on_error = [](auto first, auto last, auto err, auto what) {
             std::string before(first, err);
             std::size_t bpos = before.find_last_of('\n');
@@ -578,10 +553,6 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     qi::rule<iterator, instruction::scan_variable_t(),        ascii::space_type> scan_variable;
     qi::rule<iterator, instruction::if_else_t(),              ascii::space_type> if_else;
     qi::rule<iterator, instruction::while_loop_t(),           ascii::space_type> while_loop;
-    qi::rule<iterator, instruction::for_loop_t(),             ascii::space_type> for_loop;
-    qi::rule<iterator, instruction::instruction_t(),          ascii::space_type> for_initialization;
-    qi::rule<iterator, expression::expression_t(),            ascii::space_type> for_expression;
-    qi::rule<iterator, instruction::instruction_t(),          ascii::space_type> for_post_loop;
     qi::rule<iterator, instruction::instruction_block_t(),    ascii::space_type> instruction_block;
 };
 
@@ -914,11 +885,6 @@ public:
         // Re-evaluate condition.
         boost::apply_visitor(visitor, i.condition);
         m_bfg.while_end(*condition);
-    }
-
-    // ----- For loop ----------------------------------------------------------
-    void operator()(const instruction::for_loop_t &i) {
-        // TODO: Impl.
     }
 
     // ----- Instruction block -------------------------------------------------

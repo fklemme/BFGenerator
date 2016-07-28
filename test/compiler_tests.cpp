@@ -298,7 +298,7 @@ BOOST_AUTO_TEST_CASE(compiler_while_loop) {
 
     bf::compiler bfc;
     const std::string program = bfc.compile(source);
-    const std::string result = "xxxxx";
+    const std::string result(5, 'x');
 
     bfc_check(program, "While loop", {}, {result.begin(), result.end()});
 }
@@ -314,9 +314,28 @@ BOOST_AUTO_TEST_CASE(compiler_for_loop) {
 
     bf::compiler bfc;
     const std::string program = bfc.compile(source);
-    const std::string result = "xxxxx";
+    const std::string result(5, 'x');
 
     bfc_check(program, "For loop", {}, {result.begin(), result.end()});
+}
+
+// ----- Compiler: For loop 2 --------------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_for_loop_2) {
+    const std::string source = R"(
+        function main() {
+            var i = 5;
+            for (; i > 0; i = i - 1) {
+                print "y";
+                var i = 23;
+            }
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+    const std::string result(5, 'y');
+
+    bfc_check(program, "For loop 2", {}, {result.begin(), result.end()});
 }
 
 // ----- Compiler: No main function --------------------------------------------

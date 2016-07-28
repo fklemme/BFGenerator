@@ -518,7 +518,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         for_post_loop.name("for post loop");               // debug(for_post_loop);
         instruction_block.name("instruction block");       // debug(instruction_block);
 
-		// Print error message on parse failure.
+        // Print error message on parse failure.
         auto on_error = [](auto first, auto last, auto err, auto what) {
             std::string before(first, err);
             std::size_t bpos = before.find_last_of('\n');

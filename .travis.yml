@@ -1,6 +1,6 @@
 language: c++
 
-sudo: false
+sudo: true
 
 addons:
     apt:
@@ -11,10 +11,14 @@ addons:
             - g++-5
 
 before_script:
+    # Use GCC 5
     - export CXX="g++-5" CC="gcc-5"
-    - ls -la /usr/local
-    - id
-    - touch /usr/local/test
+    # Install Boost 1.61
+    - wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2
+    - tar --bzip2 -xf boost_1_61_0.tar.bz2
+    - ./boost_1_61_0/bootstrap.sh
+    - sudo ./boost_1_61_0/b2 install
+    - sudo ldconfig
 
 script:
     - make test

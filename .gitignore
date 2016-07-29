@@ -1,9 +1,6 @@
 # Make generated files
-bfg_example
-test_generator
-test_compiler
+bin/
 *.o
-*.bf
 
 # Temp files
 .*.swp

@@ -2,7 +2,7 @@ CXXFLAGS += -std=c++14 -Wall
 TESTLIBS += -lboost_unit_test_framework
 
 # Build compiler
-bin/bfc: bf/frontend.o
+bin/bfc: bf/frontend.o bf/compiler.o bf/generator.o
 	@test -d bin || mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 

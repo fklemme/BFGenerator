@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\bf\ast.h" />
     <ClInclude Include="..\..\bf\compiler.h" />
     <ClInclude Include="..\..\bf\generator.h" />
     <ClInclude Include="..\..\bf\interpreter.h" />

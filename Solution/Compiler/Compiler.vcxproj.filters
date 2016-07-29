@@ -35,5 +35,8 @@
     <ClInclude Include="..\..\bf\scope_exit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\bf\ast.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

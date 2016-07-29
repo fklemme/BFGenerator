@@ -127,6 +127,7 @@
     <ClCompile Include="..\..\bf\generator.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\bf\ast.h" />
     <ClInclude Include="..\..\bf\compiler.h" />
     <ClInclude Include="..\..\bf\generator.h" />
     <ClInclude Include="..\..\bf\scope_exit.h" />

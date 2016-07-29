@@ -1,10 +1,11 @@
 CXXFLAGS += -std=c++14 -Wall
-TESTLIBS += -lboost_unit_test_framework
+BFC_LIBS := -lboost_program_options
+TESTLIBS := -lboost_unit_test_framework
 
 # Build compiler
 bin/bfc: bf/frontend.o bf/compiler.o bf/generator.o
 	@test -d bin || mkdir -p bin
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(BFC_LIBS)
 
 # Build generator example
 bin/bfg_example: generator_example.o bf/generator.o

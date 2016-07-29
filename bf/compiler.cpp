@@ -103,6 +103,7 @@ namespace instruction {
 
     struct print_variable_t {
         std::string variable_name;
+        int         dummy;
     };
 
     struct print_text_t {
@@ -253,7 +254,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::print_variable_t,
-        (std::string, variable_name))
+        (std::string, variable_name)
+        (int,         dummy))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::print_text_t,
@@ -451,7 +453,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         instruction = (function_call        > ';')
                     | (variable_declaration > ';')
                     | (variable_assignment  > ';')
-                    | print_variable // Implicit semicolon TODO!!!?
+                    | (print_variable       > ';') // TODO!!!?
                     | print_text     // Implicit semicolon
                     | scan_variable  // Implicit semicolon
                     | if_else
@@ -462,7 +464,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         function_call        = function_name >> '(' > -(variable_name % ',') > ')';
         variable_declaration = qi::lexeme["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u}));
         variable_assignment  = variable_name >> '=' > expression;
-        print_variable       = qi::lexeme["print"] >> variable_name > ';';
+        print_variable       = qi::lexeme["print"] >> variable_name > qi::attr(0);
         print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'] > ';';
         scan_variable        = qi::lexeme["scan"] > variable_name > ';';
         if_else              = qi::lexeme["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);

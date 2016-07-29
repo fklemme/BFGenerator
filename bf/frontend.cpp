@@ -25,6 +25,7 @@ int main(int argc, char **argv) {
     po::notify(variables);
 
     if (variables.count("help")) {
+        std::cout << "Usage: " << argv[0] << " [options] input-file" << std::endl;
         std::cout << desc << std::endl;
         return 0;
     }

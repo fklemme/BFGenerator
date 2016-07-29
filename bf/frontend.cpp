@@ -24,15 +24,15 @@ int main(int argc, char **argv) {
         options(desc).positional(pos).run(), variables);
     po::notify(variables);
 
-    if (variables.count("help")) {
-        std::cout << "Usage: " << argv[0] << " [options] input-file" << std::endl;
-        std::cout << desc << std::endl;
-        return 0;
-    }
-
     if (variables.count("version")) {
         std::cout << "Brainfuck compiler, version 0.1" << std::endl;
         return 0;
+    }
+
+    if (variables.count("help") || !variables.count("input-file")) {
+        std::cout << "Usage: " << argv[0] << " [options] input-file" << std::endl;
+        std::cout << desc << std::endl;
+        return !variables.count("help");
     }
 
     std::ifstream in(variables["input-file"].as<std::string>());

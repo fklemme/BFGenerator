@@ -10,7 +10,7 @@ test_compiler
 
 # Visual Studio files
 Solution/BFGenerator.sdf
-Solution/BFGenerator.VC.opendb
+Solution/BFGenerator.*db
 Solution/.vs
 Solution/Debug
 Solution/Release
@@ -18,3 +18,4 @@ Solution/Win32
 Solution/*/Debug
 Solution/*/Release
 Solution/*/Win32
+Solution/*/*.user

@@ -271,6 +271,28 @@ BOOST_AUTO_TEST_CASE(var__bool_not) {
     bfg_check(program, "!7 == 0", {7}, {0});
 }
 
+// ----- bf::var::bool_not(const var&) -----------------------------------------
+BOOST_AUTO_TEST_CASE(var__bool_not_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->bool_not(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "!0 == 1", {0}, {1});
+    bfg_check(program, "!1 == 0", {1}, {0});
+    bfg_check(program, "!7 == 0", {7}, {0});
+}
+
 // ----- bf::var::bool_and(const var&) -----------------------------------------
 BOOST_AUTO_TEST_CASE(var__bool_and) {
     std::string program;
@@ -365,28 +387,6 @@ BOOST_AUTO_TEST_CASE(var__bool_or_self) {
     bfg_check(program, "1 || 1 == 1", {1}, {1});
 }
 
-// ----- bf::var::bool_not(const var&) -----------------------------------------
-BOOST_AUTO_TEST_CASE(var__bool_not_self) {
-    std::string program;
-    {
-        bf::generator bfg;
-        auto begin = bfg.new_var();
-
-        auto a = bfg.new_var("a");
-        a->read_input();
-        a->bool_not(*a);
-        a->write_output();
-
-        // Ensure correct SP movement
-        begin->add(1);
-        program = bfg.get_code();
-    }
-
-    bfg_check(program, "!0 == 1", {0}, {1});
-    bfg_check(program, "!1 == 0", {1}, {0});
-    bfg_check(program, "!7 == 0", {7}, {0});
-}
-
 // ----- bf::var::lower_than(const var&) ---------------------------------------
 BOOST_AUTO_TEST_CASE(var__lower_than) {
     std::string program;
@@ -409,6 +409,27 @@ BOOST_AUTO_TEST_CASE(var__lower_than) {
     bfg_check(program, "(4 < 5) == 1", {4, 5}, {1});
     bfg_check(program, "(5 < 5) == 0", {5, 5}, {0});
     bfg_check(program, "(5 < 4) == 0", {5, 4}, {0});
+}
+
+// ----- bf::var::lower_than(const var&) ---------------------------------------
+BOOST_AUTO_TEST_CASE(var__lower_than_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->lower_than(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "(0 < 0) == 0", {0, 0}, {0});
+    bfg_check(program, "(3 < 3) == 0", {3, 3}, {0});
 }
 
 // ----- bf::var::lower_equal(const var&) --------------------------------------
@@ -435,6 +456,27 @@ BOOST_AUTO_TEST_CASE(var__lower_equal) {
     bfg_check(program, "(5 <= 4) == 0", {5, 4}, {0});
 }
 
+// ----- bf::var::lower_equal(const var&) --------------------------------------
+BOOST_AUTO_TEST_CASE(var__lower_equal_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->lower_equal(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "(0 <= 0) == 1", {0, 0}, {1});
+    bfg_check(program, "(3 <= 3) == 1", {3, 3}, {1});
+}
+
 // ----- bf::var::greater_than(const var&) -------------------------------------
 BOOST_AUTO_TEST_CASE(var__greater_than) {
     std::string program;
@@ -459,6 +501,27 @@ BOOST_AUTO_TEST_CASE(var__greater_than) {
     bfg_check(program, "(5 > 4) == 1", {5, 4}, {1});
 }
 
+// ----- bf::var::greater_than(const var&) -------------------------------------
+BOOST_AUTO_TEST_CASE(var__greater_than_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->greater_than(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "(0 > 0) == 0", {0, 0}, {0});
+    bfg_check(program, "(3 > 3) == 0", {3, 3}, {0});
+}
+
 // ----- bf::var::greater_equal(const var&) ------------------------------------
 BOOST_AUTO_TEST_CASE(var__greater_equal) {
     std::string program;
@@ -481,6 +544,27 @@ BOOST_AUTO_TEST_CASE(var__greater_equal) {
     bfg_check(program, "(4 >= 5) == 0", {4, 5}, {0});
     bfg_check(program, "(5 >= 5) == 1", {5, 5}, {1});
     bfg_check(program, "(5 >= 4) == 1", {5, 4}, {1});
+}
+
+// ----- bf::var::greater_equal(const var&) ------------------------------------
+BOOST_AUTO_TEST_CASE(var__greater_equal_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->greater_equal(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "(0 >= 0) == 1", {0, 0}, {1});
+    bfg_check(program, "(3 >= 3) == 1", {3, 3}, {1});
 }
 
 // ----- bf::var::equal(const var&) --------------------------------------------
@@ -508,6 +592,27 @@ BOOST_AUTO_TEST_CASE(var__equal) {
     bfg_check(program, "(0 == 0) == 1", {0, 0}, {1});
 }
 
+// ----- bf::var::equal(const var&) --------------------------------------------
+BOOST_AUTO_TEST_CASE(var__equal_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->equal(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "(0 == 0) == 1", {0, 0}, {1});
+    bfg_check(program, "(3 == 3) == 1", {3, 3}, {1});
+}
+
 // ----- bf::var::not_equal(const var&) ----------------------------------------
 BOOST_AUTO_TEST_CASE(var__not_equal) {
     std::string program;
@@ -531,6 +636,27 @@ BOOST_AUTO_TEST_CASE(var__not_equal) {
     bfg_check(program, "(3 != 4) == 1", {3, 4}, {1});
     bfg_check(program, "(5 != 4) == 1", {5, 4}, {1});
     bfg_check(program, "(0 != 0) == 0", {0, 0}, {0});
+}
+
+// ----- bf::var::not_equal(const var&) ----------------------------------------
+BOOST_AUTO_TEST_CASE(var__not_equal_self) {
+    std::string program;
+    {
+        bf::generator bfg;
+        auto begin = bfg.new_var();
+
+        auto a = bfg.new_var("a");
+        a->read_input();
+        a->not_equal(*a);
+        a->write_output();
+
+        // Ensure correct SP movement
+        begin->add(1);
+        program = bfg.get_code();
+    }
+
+    bfg_check(program, "(0 != 0) == 0", {0, 0}, {0});
+    bfg_check(program, "(3 != 3) == 0", {3, 3}, {0});
 }
 
 // ----- bf::generator::if_begin(const var&) -----------------------------------

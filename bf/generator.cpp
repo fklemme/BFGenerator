@@ -487,94 +487,109 @@ void var::bool_or(const var &v) {
 }
 
 void var::lower_than(const var &v) {
-    assert(&v != this); // TODO: Implement this case?
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
             " Compare '" + m_name + "' lower than '" + v.m_name + "'",
             m_gen.m_indention);
 
-    // Similar to http://stackoverflow.com/a/13327857
-    // array = {1 (result), 1, 0, a, b, 0}
-    //    pos: [0]         [1][2][3][4][5]
-    auto array = m_gen.new_var_array<6>("_lower_than");
-    array[0]->set(1);
-    array[1]->set(1);
-    array[3]->move(*this); // a ^= *this
-    array[4]->copy(v);     // b ^= v
+    if (&v != this) {
+        // Similar to http://stackoverflow.com/a/13327857
+        // array = {1 (result), 1, 0, a, b, 0}
+        //    pos: [0]         [1][2][3][4][5]
+        auto array = m_gen.new_var_array<6>("_lower_than");
+        array[0]->set(1);
+        array[1]->set(1);
+        array[3]->move(*this); // a ^= *this
+        array[4]->copy(v);     // b ^= v
 
-    m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[3]),
-            "+>+<"       // This is for managing if a = 0 and b = 0.
-            "[->-[>]<<]" // If a is the one which reaches 0 first (a < b),
-                         // then pointer will be at [3]. Else it will be at [2].
-            "<[<->>]>",  // If "else" (a >= b), set result at [0] to 0 and
-                         // correct stack pointer position to [3] at the end.
-            "Compare operation sequence for 'lower than'",
-            m_gen.m_indention);
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[3]),
+                "+>+<"       // This is for managing if a = 0 and b = 0.
+                "[->-[>]<<]" // If a is the one which reaches 0 first (a < b),
+                             // then pointer will be at [3]. Else it will be at [2].
+                "<[<->>]>",  // If "else" (a >= b), set result at [0] to 0 and
+                             // correct stack pointer position to [3] at the end.
+                "Compare operation sequence for 'lower than'",
+                m_gen.m_indention);
 
-    // Move result to *this
-    this->move(*array[0]);
+        // Move result to *this
+        this->move(*array[0]);
+    } else
+        this->set(0);
 }
 
 void var::lower_equal(const var &v) {
-    // (this <= v) == (this < v + 1)
-    auto v_1 = m_gen.new_var("_1_plus_" + v.m_name);
-    v_1->copy(v);
-    v_1->increment();
-    this->lower_than(*v_1);
+    if (&v != this) {
+        // (this <= v) == (this < v + 1)
+        auto v_1 = m_gen.new_var("_1_plus_" + v.m_name);
+        v_1->copy(v);
+        v_1->increment();
+        this->lower_than(*v_1);
+    } else
+        this->set(1);
 }
 
 void var::greater_than(const var &v) {
-    // (this > v) == (v < this)
-    auto v_copy = m_gen.new_var("_copy_" + v.m_name);
-    v_copy->copy(v);
-    v_copy->lower_than(*this);
-    this->move(*v_copy);
+    if (&v != this) {
+        // (this > v) == (v < this)
+        auto v_copy = m_gen.new_var("_copy_" + v.m_name);
+        v_copy->copy(v);
+        v_copy->lower_than(*this);
+        this->move(*v_copy);
+    } else
+        this->set(0);
 }
 
 void var::greater_equal(const var &v) {
-    // (this >= v) == (v <= this)
-    auto v_copy = m_gen.new_var("_copy_" + v.m_name);
-    v_copy->copy(v);
-    v_copy->lower_equal(*this);
-    this->move(*v_copy);
+    if (&v != this) {
+        // (this >= v) == (v <= this)
+        auto v_copy = m_gen.new_var("_copy_" + v.m_name);
+        v_copy->copy(v);
+        v_copy->lower_equal(*this);
+        this->move(*v_copy);
+    } else
+        this->set(1);
 }
 
 void var::equal(const var &v) {
-    assert(&v != this); // TODO: Implement this case?
     m_gen.m_out.emplace_back("", "", // NOP
             "(Debug " + std::to_string(m_gen.m_debug_nr++) + ")"
             " Compare '" + m_name + "' equal to '" + v.m_name + "'",
             m_gen.m_indention);
 
-    // Similar to http://stackoverflow.com/a/13327857
-    // array = {0 (result), 1, 0, a, b, 0}
-    //    pos: [0]         [1][2][3][4][5]
-    auto array = m_gen.new_var_array<6>("_equal");
-    array[1]->set(1);
-    array[3]->move(*this); // a ^= *this
-    array[4]->copy(v);     // b ^= v
+    if (&v != this) {
+        // Similar to http://stackoverflow.com/a/13327857
+        // array = {0 (result), 1, 0, a, b, 0}
+        //    pos: [0]         [1][2][3][4][5]
+        auto array = m_gen.new_var_array<6>("_equal");
+        array[1]->set(1);
+        array[3]->move(*this); // a ^= *this
+        array[4]->copy(v);     // b ^= v
 
-    m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[3]),
-            "+>+<"         // This is for managing if a = 0 and b = 0.
-            "[->-[>]<<]"   // If a is the one which reaches 0 first (a < b),
-                           // then pointer will be at [3]. Else it will be at [2].
-            "<["           // If "else" (a >= b)...
-            "<+>>>"        // ...set result at [0] to 1 at first (expecting a = b)
-            "[<<<->>>[-]]" // ...and reset result to 0 if a > 0
-            "<]>",         // Correct stack pointer position to [3] at the end.
-            "Compare operation sequence for 'equal'",
-            m_gen.m_indention);
+        m_gen.m_out.emplace_back(m_gen.move_sp_to(*array[3]),
+                "+>+<"         // This is for managing if a = 0 and b = 0.
+                "[->-[>]<<]"   // If a is the one which reaches 0 first (a < b),
+                               // then pointer will be at [3]. Else it will be at [2].
+                "<["           // If "else" (a >= b)...
+                "<+>>>"        // ...set result at [0] to 1 at first (expecting a = b)
+                "[<<<->>>[-]]" // ...and reset result to 0 if a > 0
+                "<]>",         // Correct stack pointer position to [3] at the end.
+                "Compare operation sequence for 'equal'",
+                m_gen.m_indention);
 
-    // Move result to *this
-    this->move(*array[0]);
+        // Move result to *this
+        this->move(*array[0]);
+    } else
+        this->set(1);
 }
 
 void var::not_equal(const var &v) {
-    assert(&v != this); // TODO: Implement this case?
-    auto temp = m_gen.new_var("_equal");
-    temp->copy(*this);
-    temp->equal(v);
-    this->bool_not(*temp);
+    if (&v != this) {
+        auto temp = m_gen.new_var("_equal");
+        temp->copy(*this);
+        temp->equal(v);
+        this->bool_not(*temp);
+    } else
+        this->set(0);
 }
 
 var::var(generator &gen, const std::string &var_name, unsigned stack_pos)

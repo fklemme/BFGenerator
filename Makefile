@@ -1,4 +1,4 @@
-CXXFLAGS += -std=c++14 -Wall
+CXXFLAGS += -std=c++14 -O2 -Wall
 BFC_LIBS := -lboost_program_options
 TESTLIBS := -lboost_unit_test_framework
 

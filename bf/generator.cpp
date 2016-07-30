@@ -163,12 +163,12 @@ std::string generator::get_code() const {
 }
 
 std::string generator::get_minimal_code() const {
-    auto full_code = get_code();
+    const std::string full_code = get_code();
 
     // Filter all non-Brainfuck characters
     std::string minimal_code;
     unsigned line_counter = 0;
-    for (char c : full_code) {
+    for (const char c : full_code) {
         if (std::find(bf_ops.begin(), bf_ops.end(), c) != bf_ops.end()) {
             minimal_code += c;
             if (++line_counter % 80 == 0) {
@@ -190,7 +190,7 @@ std::string generator::get_minimal_code() const {
 }
 
 std::string generator::move_sp_to(const var &v) {
-    int dist = (int) v.m_pos - (int) m_stackpos;
+    const int dist = (int) v.m_pos - (int) m_stackpos;
     m_stackpos = v.m_pos;
 
     if (dist >= 0)

@@ -167,16 +167,19 @@ std::string generator::get_minimal_code() const {
 
     // Filter all non-Brainfuck characters
     std::string minimal_code;
+    unsigned line_counter = 0;
     for (char c : full_code) {
         if (std::find(bf_ops.begin(), bf_ops.end(), c) != bf_ops.end()) {
             minimal_code += c;
-            if (minimal_code.size() % 80 == 0)
+            if (++line_counter % 80 == 0) {
                 minimal_code += '\n';
+                line_counter = 0;
+            }
         }
     }
 
     // Make it look nice :)
-    unsigned open_chars = 80 - (minimal_code.size() % 80);
+    const unsigned open_chars = 80 - line_counter;
     if (open_chars < 8)
         minimal_code += std::string(open_chars, '+');
     else

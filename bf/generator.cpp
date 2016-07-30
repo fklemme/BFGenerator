@@ -184,6 +184,7 @@ std::string generator::get_minimal_code() const {
         minimal_code += std::string(open_chars, '+');
     else
         minimal_code += "[-]" + std::string(open_chars - 6, '+') + "[-]";
+    minimal_code += '\n';
 
     return minimal_code;
 }

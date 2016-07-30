@@ -1,3 +1,22 @@
+// Minimal example, still Ueb3Aufg2 :)
+
 function main() {
-    print "Hello world!";
+    var cols = 40;
+    var rows = 30;
+    
+    for (var i = 0; i < rows; i = i + 1) {
+        var count = 0;
+        for (var j = 0; j < cols; j = j + 1) {
+            if (count == 0)
+                print "X";
+            else
+                print "_";
+            
+            if (count > i)
+                count = 0;
+            else
+                count = count + 1;
+        }
+        print "\n";
+    }
 }

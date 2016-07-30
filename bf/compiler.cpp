@@ -707,9 +707,15 @@ private:
 };
 
 // ----- Generate Brainfuck code from AST --------------------------------------
+compiler::compiler() : m_debug_output(false) {}
+
 std::string compiler::compile(const std::string &source) const {
     program_t program = parse(source);
     return generate(program);
+}
+
+void compiler::enable_debug_output(bool debug_output) {
+    m_debug_output = debug_output;
 }
 
 std::string compiler::generate(const program_t &program) const {
@@ -719,7 +725,10 @@ std::string compiler::generate(const program_t &program) const {
     instruction::instruction_t start = call_to_main;
     boost::apply_visitor(visitor, start);
 
-    return visitor.get_generator().get_code();
+    if (m_debug_output)
+        return visitor.get_generator().get_code();
+    else
+        return visitor.get_generator().get_minimal_code();
 }
 
 } // namespace bf

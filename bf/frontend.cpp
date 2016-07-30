@@ -13,6 +13,7 @@ int main(int argc, char **argv) {
     desc.add_options()
         ("input-file,i",  po::value<std::string>(),                        "Set input file.")
         ("output-file,o", po::value<std::string>()->default_value("a.bf"), "Set output file.")
+        ("debug,d",       "Debug information in output.")
         ("help,h",        "Print this help message.")
         ("version,v",     "Print version information.");
 
@@ -39,6 +40,8 @@ int main(int argc, char **argv) {
     const std::string source(std::istreambuf_iterator<char>(in), {});
 
     bf::compiler bfc;
+    if (variables.count("debug"))
+        bfc.enable_debug_output(true);
     const std::string bf_code = bfc.compile(source);
 
     std::ofstream out(variables["output-file"].as<std::string>());

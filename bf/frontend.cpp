@@ -36,16 +36,22 @@ int main(int argc, char **argv) {
         return !variables.count("help");
     }
 
-    std::ifstream in(variables["input-file"].as<std::string>());
-    const std::string source(std::istreambuf_iterator<char>(in), {});
+    try {
+        std::ifstream in(variables["input-file"].as<std::string>());
+        const std::string source(std::istreambuf_iterator<char>(in), {});
 
-    bf::compiler bfc;
-    if (variables.count("debug"))
-        bfc.enable_debug_output(true);
-    const std::string bf_code = bfc.compile(source);
+        bf::compiler bfc;
+        if (variables.count("debug"))
+            bfc.enable_debug_output(true);
+        const std::string bf_code = bfc.compile(source);
 
-    std::ofstream out(variables["output-file"].as<std::string>());
-    out << bf_code;
+        std::ofstream out(variables["output-file"].as<std::string>());
+        out << bf_code;
+    }
+    catch (const std::exception &e) {
+        std::cerr << "Oops, something went wrong!\n"
+                  << "Unhandled Exception: " << e.what() << std::endl;
+    }
 
     return 0;
 }

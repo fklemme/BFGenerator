@@ -28,7 +28,18 @@ namespace qi    = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 
 template <typename iterator>
-struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
+struct skipper : qi::grammar<iterator> {
+    skipper() : skipper::base_type(skip) {
+        skip    = ascii::space | comment;
+        comment = qi::lit("//") >> *(qi::char_ - qi::eol) >> qi::eol;
+    }
+
+    qi::rule<iterator> skip;
+    qi::rule<iterator> comment;
+};
+
+template <typename iterator>
+struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
     // TODO: Descripe necessity of AST rotation here!
 
     // Helper: Get operator precedence of arbitrary binary operation.
@@ -102,7 +113,7 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
     }
 
     // On binary operation: Check if rotation of nodes is necessary and assign result.
-    typedef qi::rule<iterator, expression::expression_t(), ascii::space_type> expression_rule_t;
+    typedef qi::rule<iterator, expression::expression_t(), skipper<iterator>> expression_rule_t;
     static void check_rotate(expression::expression_t attr, typename expression_rule_t::context_type &context) {
         const auto &attr_rhs = boost::apply_visitor(child_visitor(side_t::right), attr);
         const int attr_precedence = boost::apply_visitor(precedence_visitor(), attr);
@@ -269,66 +280,68 @@ struct grammar : qi::grammar<iterator, program_t(), ascii::space_type> {
         qi::on_error<qi::fail>(program, boost::phoenix::bind(on_error, qi::_1, qi::_2, qi::_3, qi::_4));
     }
 
-    qi::rule<iterator, program_t(),   ascii::space_type> program;
-    qi::rule<iterator, function_t(),  ascii::space_type> function;
-    qi::rule<iterator, std::string(), ascii::space_type> function_name;
-    qi::rule<iterator, std::string(), ascii::space_type> variable_name;
+    qi::rule<iterator, program_t(),   skipper<iterator>> program;
+    qi::rule<iterator, function_t(),  skipper<iterator>> function;
+    qi::rule<iterator, std::string(), skipper<iterator>> function_name;
+    qi::rule<iterator, std::string(), skipper<iterator>> variable_name;
 
-    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression;
-    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_12;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::or_>(),  ascii::space_type> binary_or;
-    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_11;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::and_>(), ascii::space_type> binary_and;
-    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_7;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::eq>(),   ascii::space_type> binary_eq;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::neq>(),  ascii::space_type> binary_neq;
-    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_6;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::lt>(),   ascii::space_type> binary_lt;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::leq>(),  ascii::space_type> binary_leq;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::gt>(),   ascii::space_type> binary_gt;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::geq>(),  ascii::space_type> binary_geq;
-    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_4;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::add>(),  ascii::space_type> binary_add;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::sub>(),  ascii::space_type> binary_sub;
-    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_3;
-    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::mul>(),  ascii::space_type> binary_mul;
-    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> expression_2;
-    qi::rule<iterator, expression::unary_operation_t<expression::operator_t::not_>(),  ascii::space_type> unary_not;
-    qi::rule<iterator, expression::expression_t(),                                     ascii::space_type> simple;
-    qi::rule<iterator, expression::value_t(),                                          ascii::space_type> value;
-    qi::rule<iterator, expression::variable_t(),                                       ascii::space_type> variable;
-    qi::rule<iterator, expression::parenthesized_expression_t(),                       ascii::space_type> parenthesized;
+    qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> expression;
+    qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> expression_12;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::or_>(),  skipper<iterator>> binary_or;
+    qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> expression_11;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::and_>(), skipper<iterator>> binary_and;
+    qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> expression_7;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::eq>(),   skipper<iterator>> binary_eq;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::neq>(),  skipper<iterator>> binary_neq;
+    qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> expression_6;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::lt>(),   skipper<iterator>> binary_lt;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::leq>(),  skipper<iterator>> binary_leq;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::gt>(),   skipper<iterator>> binary_gt;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::geq>(),  skipper<iterator>> binary_geq;
+    qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> expression_4;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::add>(),  skipper<iterator>> binary_add;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::sub>(),  skipper<iterator>> binary_sub;
+    qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> expression_3;
+    qi::rule<iterator, expression::binary_operation_t<expression::operator_t::mul>(),  skipper<iterator>> binary_mul;
+    qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> expression_2;
+    qi::rule<iterator, expression::unary_operation_t<expression::operator_t::not_>(),  skipper<iterator>> unary_not;
+    qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> simple;
+    qi::rule<iterator, expression::value_t(),                                          skipper<iterator>> value;
+    qi::rule<iterator, expression::variable_t(),                                       skipper<iterator>> variable;
+    qi::rule<iterator, expression::parenthesized_expression_t(),                       skipper<iterator>> parenthesized;
 
-    qi::rule<iterator, instruction::instruction_t(),          ascii::space_type> instruction;
-    qi::rule<iterator, instruction::function_call_t(),        ascii::space_type> function_call;
-    qi::rule<iterator, instruction::variable_declaration_t(), ascii::space_type> variable_declaration;
-    qi::rule<iterator, instruction::variable_assignment_t(),  ascii::space_type> variable_assignment;
-    qi::rule<iterator, instruction::print_variable_t(),       ascii::space_type> print_variable;
-    qi::rule<iterator, instruction::print_text_t(),           ascii::space_type> print_text;
-    qi::rule<iterator, instruction::scan_variable_t(),        ascii::space_type> scan_variable;
-    qi::rule<iterator, instruction::if_else_t(),              ascii::space_type> if_else;
-    qi::rule<iterator, instruction::while_loop_t(),           ascii::space_type> while_loop;
-    qi::rule<iterator, instruction::for_loop_t(),             ascii::space_type> for_loop;
-    qi::rule<iterator, instruction::instruction_t(),          ascii::space_type> for_initialization;
-    qi::rule<iterator, expression::expression_t(),            ascii::space_type> for_expression;
-    qi::rule<iterator, instruction::instruction_t(),          ascii::space_type> for_post_loop;
-    qi::rule<iterator, instruction::instruction_block_t(),    ascii::space_type> instruction_block;
+    qi::rule<iterator, instruction::instruction_t(),          skipper<iterator>> instruction;
+    qi::rule<iterator, instruction::function_call_t(),        skipper<iterator>> function_call;
+    qi::rule<iterator, instruction::variable_declaration_t(), skipper<iterator>> variable_declaration;
+    qi::rule<iterator, instruction::variable_assignment_t(),  skipper<iterator>> variable_assignment;
+    qi::rule<iterator, instruction::print_variable_t(),       skipper<iterator>> print_variable;
+    qi::rule<iterator, instruction::print_text_t(),           skipper<iterator>> print_text;
+    qi::rule<iterator, instruction::scan_variable_t(),        skipper<iterator>> scan_variable;
+    qi::rule<iterator, instruction::if_else_t(),              skipper<iterator>> if_else;
+    qi::rule<iterator, instruction::while_loop_t(),           skipper<iterator>> while_loop;
+    qi::rule<iterator, instruction::for_loop_t(),             skipper<iterator>> for_loop;
+    qi::rule<iterator, instruction::instruction_t(),          skipper<iterator>> for_initialization;
+    qi::rule<iterator, expression::expression_t(),            skipper<iterator>> for_expression;
+    qi::rule<iterator, instruction::instruction_t(),          skipper<iterator>> for_post_loop;
+    qi::rule<iterator, instruction::instruction_block_t(),    skipper<iterator>> instruction_block;
 };
 
 // ----- Parse source to AST ---------------------------------------------------
 program_t parse(const std::string &source) {
-    // Build program struct from source input.
-    grammar<decltype(source.begin())> g;
+    grammar<std::string::const_iterator> gram;
+    skipper<std::string::const_iterator> skip;
     program_t program;
+
+    // Build program struct from source input.
     auto begin = source.begin(), end = source.end();
-    const bool success = qi::phrase_parse(begin, end, g, ascii::space, program);
+    const bool success = qi::phrase_parse(begin, end, gram, skip, program);
 
     if (!success || begin != end)
         throw std::logic_error("Parse unsuccessful!");
 
-    // ----- Check program struct -----
+    // ----- Check program struct ----------------------------------------------
     std::sort(program.begin(), program.end(),
-            [](const function_t &f1, const function_t &f2) {return f1.name < f2.name;});
+        [](const function_t &f1, const function_t &f2) {return f1.name < f2.name;});
     // Ensure unique function names.
     if (program.size() > 1) {
         auto before_it = program.begin();
@@ -597,7 +610,20 @@ public:
 
     // ----- Print text --------------------------------------------------------
     void operator()(const instruction::print_text_t &i) {
-        m_bfg.print(i.text);
+        std::string text = i.text;
+        // Replace character sequence "\n" with character '\n' and so on...
+        // TODO: This can be enhanced for sure.
+        auto it = text.begin();
+        while ((it = std::find(it, text.end(), '\\')) != text.end()) {
+            text.erase(it);
+            if (it != text.end())
+                switch (*it) {
+                    case 'n': *it = '\n'; break;
+                    case 't': *it = '\t'; break;
+                    default: throw std::logic_error(std::string("Unknown char: '\\") + *it + "'");
+                }
+        }
+        m_bfg.print(text);
     }
 
     // ----- Scan variable -----------------------------------------------------

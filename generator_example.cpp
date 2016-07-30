@@ -102,9 +102,8 @@ int main(int argc, char **argv) {
 
     // Print to file
     std::ofstream out("Ueb3Aufg2.bf");
-    out << bfg;
-    //auto minimal_code = bfg.minimal_code();
-    //out << minimal_code;
+    //out << bfg;
+    out << bfg.get_minimal_code();
 
     return 0;
 }

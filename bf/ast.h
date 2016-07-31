@@ -21,6 +21,8 @@ namespace expression {
     struct parenthesized_expression_t;
 
     typedef boost::variant<
+        // First type must not contain member of type expression_t.
+        boost::recursive_wrapper<value_t>,
         boost::recursive_wrapper<binary_operation_t<operator_t::or_>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::and_>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::eq>>,
@@ -33,7 +35,6 @@ namespace expression {
         boost::recursive_wrapper<binary_operation_t<operator_t::sub>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::mul>>,
         boost::recursive_wrapper<unary_operation_t<operator_t::not_>>,
-        boost::recursive_wrapper<value_t>,
         boost::recursive_wrapper<variable_t>,
         //boost::recursive_wrapper<function_call_t>,
         boost::recursive_wrapper<parenthesized_expression_t>

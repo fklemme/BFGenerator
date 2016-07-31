@@ -1,6 +1,9 @@
-// Minimal example, still Ueb3Aufg2 :)
+/* ----------------------------------- *
+ * Minimal example, still Ueb3Aufg2 :) *
+ * ----------------------------------- */
 
 function main() {
+    // TODO: Query user for input.
     var cols = 40;
     var rows = 30;
     

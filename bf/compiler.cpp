@@ -30,12 +30,14 @@ namespace ascii = boost::spirit::ascii;
 template <typename iterator>
 struct skipper : qi::grammar<iterator> {
     skipper() : skipper::base_type(skip) {
-        skip    = ascii::space | comment;
-        comment = qi::lit("//") >> *(qi::char_ - qi::eol) >> qi::eol;
+        skip      = ascii::space | comment | multiline;
+        comment   = qi::lit("//") >> *(qi::char_ - qi::eol) >> qi::eol;
+        multiline = qi::lit("/*") >> *(qi::char_ - "*/") >> "*/";
     }
 
     qi::rule<iterator> skip;
     qi::rule<iterator> comment;
+    qi::rule<iterator> multiline;
 };
 
 template <typename iterator>

@@ -61,6 +61,27 @@ BOOST_AUTO_TEST_CASE(compiler_function_call) {
     bfc_check(program, "Function call 'test()'", {}, {result.begin(), result.end()});
 }
 
+// ----- Compiler: Function return value ---------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_function_return_value) {
+    const std::string source = R"(
+        function main() {
+            var a = five();
+            var b = zero();
+            print a;
+            print b;
+        }
+        function five() {
+            return 5;
+        }
+        function zero() {}
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Function return value", {}, {5, 0});
+}
+
 // ----- Compiler: Scan and print ----------------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_scan_and_print) {
     const std::string source = R"(
@@ -393,6 +414,21 @@ BOOST_AUTO_TEST_CASE(compiler_function_recursion) {
         }
         function recursion() {
             recursion();
+        }
+    )";
+
+    bf::compiler bfc;
+    BOOST_CHECK_THROW(bfc.compile(source), std::exception);
+}
+
+// ----- Compiler: Function recursion 2 ----------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_function_recursion_2) {
+    const std::string source = R"(
+        function main() {
+            recursion();
+        }
+        function recursion() {
+            var a = recursion();
         }
     )";
 

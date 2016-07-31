@@ -185,13 +185,14 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         unary_not    = '!' > simple;
 
         // Lowest expression level
-        simple        = value | variable | parenthesized;
-        value         = qi::uint_;
-        variable      = variable_name;
-        parenthesized = '(' > expression > ')';
+        simple             = value | variable | parenthesized;
+        value              = qi::uint_;
+        variable           = variable_name;
+        //function_call_expr = function_name >> '(' > -(variable_name % ',') > ')';
+        parenthesized      = '(' > expression > ')';
 
         // Instructions
-        instruction = (function_call        > ';')
+        instruction = (function_call_instr  > ';')
                     | (variable_declaration > ';')
                     | (variable_assignment  > ';')
                     | print_variable // Implicit semicolon TODO!!!?
@@ -202,7 +203,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
                     | for_loop
                     | instruction_block;
 
-        function_call        = function_name >> '(' > -(variable_name % ',') > ')';
+        function_call_instr  = function_name >> '(' > -(variable_name % ',') > ')';
         variable_declaration = qi::lexeme["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u}));
         variable_assignment  = variable_name >> '=' > expression;
         print_variable       = qi::lexeme["print"] >> variable_name > ';';
@@ -244,10 +245,11 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         simple.name("simple");                             // debug(simple);
         value.name("value");                               // debug(value);
         variable.name("variable");                         // debug(variable);
+        //function_call_expr.name("function call expr");     // debug(function_call_expr);
         parenthesized.name("parenthesized expression");    // debug(parenthesized);
 
         instruction.name("instruction");                   // debug(instruction);
-        function_call.name("function call");               // debug(function_call);
+        function_call_instr.name("function call instr");   // debug(function_call_instr);
         variable_declaration.name("variable declaration"); // debug(variable_declaration);
         variable_assignment.name("variable assignment");   // debug(variable_assignment);
         print_variable.name("print variable");             // debug(print_variable);
@@ -310,10 +312,11 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
     qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> simple;
     qi::rule<iterator, expression::value_t(),                                          skipper<iterator>> value;
     qi::rule<iterator, expression::variable_t(),                                       skipper<iterator>> variable;
+    //qi::rule<iterator, expression::function_call_t(),                                  skipper<iterator>> function_call_expr;
     qi::rule<iterator, expression::parenthesized_expression_t(),                       skipper<iterator>> parenthesized;
 
     qi::rule<iterator, instruction::instruction_t(),          skipper<iterator>> instruction;
-    qi::rule<iterator, instruction::function_call_t(),        skipper<iterator>> function_call;
+    qi::rule<iterator, instruction::function_call_t(),        skipper<iterator>> function_call_instr;
     qi::rule<iterator, instruction::variable_declaration_t(), skipper<iterator>> variable_declaration;
     qi::rule<iterator, instruction::variable_assignment_t(),  skipper<iterator>> variable_assignment;
     qi::rule<iterator, instruction::print_variable_t(),       skipper<iterator>> print_variable;
@@ -364,16 +367,6 @@ public:
         : m_bfg(bfg), m_scope(scope)
     {
         m_var_stack.push_back(var_ptr);
-    }
-
-    // ----- Variable ----------------------------------------------------------
-    void operator()(const expression::variable_t &e) {
-        m_var_stack.back()->copy(*get_var(e.variable_name));
-    }
-
-    // ----- Value -------------------------------------------------------------
-    void operator()(const expression::value_t &e) {
-        m_var_stack.back()->set(e.value);
     }
     
     // ----- Binary or ---------------------------------------------------------
@@ -517,6 +510,21 @@ public:
         boost::apply_visitor(*this, e.expression);
         m_var_stack.back()->bool_not(*m_var_stack.back());
     }
+
+    // ----- Value -------------------------------------------------------------
+    void operator()(const expression::value_t &e) {
+        m_var_stack.back()->set(e.value);
+    }
+
+    // ----- Variable ----------------------------------------------------------
+    void operator()(const expression::variable_t &e) {
+        m_var_stack.back()->copy(*get_var(e.variable_name));
+    }
+
+    // ----- Function call -----------------------------------------------------
+    //void operator()(const expression::function_call_t &e) {
+        // TODO
+    //}
 
     // ----- Parenthesized expression ------------------------------------------
     void operator()(const expression::parenthesized_expression_t &e) {

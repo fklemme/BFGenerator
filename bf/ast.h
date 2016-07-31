@@ -13,15 +13,14 @@ namespace expression {
     enum class operator_t { or_, and_, eq, neq, lt, leq, gt, geq, add, sub, mul, not_ };
 
     // Forward declarations
-    struct variable_t;
-    struct value_t;
     template <operator_t op> struct binary_operation_t;
     template <operator_t op> struct unary_operation_t;
+    struct value_t;
+    struct variable_t;
+    //struct function_call_t;
     struct parenthesized_expression_t;
 
     typedef boost::variant<
-        boost::recursive_wrapper<variable_t>,
-        boost::recursive_wrapper<value_t>,
         boost::recursive_wrapper<binary_operation_t<operator_t::or_>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::and_>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::eq>>,
@@ -34,16 +33,11 @@ namespace expression {
         boost::recursive_wrapper<binary_operation_t<operator_t::sub>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::mul>>,
         boost::recursive_wrapper<unary_operation_t<operator_t::not_>>,
+        boost::recursive_wrapper<value_t>,
+        boost::recursive_wrapper<variable_t>,
+        //boost::recursive_wrapper<function_call_t>,
         boost::recursive_wrapper<parenthesized_expression_t>
     > expression_t;
-
-    struct variable_t {
-        std::string variable_name;
-    };
-
-    struct value_t {
-        unsigned value;
-    };
     
     struct binary_operation_base {}; // For type traits
 
@@ -57,6 +51,19 @@ namespace expression {
     struct unary_operation_t {
         expression_t expression;
     };
+
+    struct value_t {
+        unsigned value;
+    };
+
+    struct variable_t {
+        std::string variable_name;
+    };
+
+    //struct function_call_t {
+    //    std::string              function_name;
+    //    std::vector<std::string> variable_names;
+    //};
 
     struct parenthesized_expression_t {
         expression_t expression;
@@ -146,14 +153,6 @@ typedef std::vector<function_t> program_t;
 } // namespace bf
 
 BOOST_FUSION_ADAPT_STRUCT(
-        bf::expression::variable_t,
-        (std::string, variable_name))
-
-BOOST_FUSION_ADAPT_STRUCT(
-        bf::expression::value_t,
-        (unsigned, value))
-
-BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::binary_operation_t<bf::expression::operator_t::or_>,
         (bf::expression::expression_t, lhs)
         (bf::expression::expression_t, rhs))
@@ -211,6 +210,19 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::unary_operation_t<bf::expression::operator_t::not_>,
         (bf::expression::expression_t, expression))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::value_t,
+        (unsigned, value))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::variable_t,
+        (std::string, variable_name))
+
+//BOOST_FUSION_ADAPT_STRUCT(
+//        bf::expression::function_call_t,
+//        (std::string,              function_name)
+//        (std::vector<std::string>, variable_names))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::parenthesized_expression_t,

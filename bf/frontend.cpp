@@ -49,8 +49,8 @@ int main(int argc, char **argv) {
         out << bf_code;
     }
     catch (const std::exception &e) {
-        std::cerr << "Oops, something went wrong!\n"
-                  << "Unhandled Exception: " << e.what() << std::endl;
+        std::cerr << "Could not compile given source code: " << e.what() << std::endl;
+        return 1;
     }
 
     return 0;

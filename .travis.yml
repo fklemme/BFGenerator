@@ -1,9 +1,6 @@
 language: c++
 
-# Use Trusty for more recent Boost library
-# https://docs.travis-ci.com/user/trusty-ci-environment/
-sudo: required
-dist: trusty
+sudo: true
 
 addons:
     apt:
@@ -12,11 +9,28 @@ addons:
         packages:
             - make
             - g++-5
-            - libboost-test-dev
-            - libboost-program-options-dev
+          # - libboost-program-options-dev
+          # - libboost-test-dev
 
-before_script:
-    - export CXX="g++-5" CC="gcc-5"
+before_install:
+    # Use GCC 5 for C++14
+    - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 10
+    - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 10
+    - sudo update-alternatives --install /usr/bin/cc  cc  /usr/bin/gcc   20
+    - sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++   20
+    - sudo update-alternatives --set cc  /usr/bin/gcc
+    - sudo update-alternatives --set c++ /usr/bin/g++
+
+install:
+    # Install Boost 1.61
+    - cd ..
+    - wget https://sourceforge.net/projects/boost/files/boost/1.61.0/boost_1_61_0.tar.bz2
+    - tar --bzip2 -xf boost_1_61_0.tar.bz2
+    - cd boost_1_61_0
+    - ./bootstrap.sh
+    - travis_wait 30 sudo ./b2 -d0 install
+    - sudo ldconfig
+    - cd ../BFGenerator
 
 script:
     - make && ./bin/bfc --version

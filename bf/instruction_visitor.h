@@ -2,6 +2,7 @@
 
 #include "ast.h"
 #include "compiler.h"
+#include "generator.h"
 
 #include <boost/variant.hpp>
 
@@ -9,7 +10,8 @@ namespace bf {
 
 class instruction_visitor : public boost::static_visitor<void> {
 public:
-    instruction_visitor(build_t&);
+    instruction_visitor(build_t&, const generator::var_ptr &function_return_value);
+
     void operator()(const instruction::function_call_t&);
     void operator()(const instruction::variable_declaration_t&);
     void operator()(const instruction::variable_assignment_t&);
@@ -22,7 +24,8 @@ public:
     void operator()(const instruction::instruction_block_t&);
 
 private:
-    build_t &m_build;
+    build_t            &m_build;
+    generator::var_ptr m_return_value;
 };
 
 } // namespace bf

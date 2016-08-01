@@ -1,12 +1,11 @@
-#pragma once
-
 #include "expression_visitor.h"
 #include "instruction_visitor.h"
 #include "scope_exit.h"
 
 namespace bf {
 
-instruction_visitor::instruction_visitor(build_t &build) : m_build(build) {}
+instruction_visitor::instruction_visitor(build_t &build, const generator::var_ptr &function_return_value)
+    : m_build(build), m_return_value(function_return_value) {}
 
 // ----- Function call ---------------------------------------------------------
 void instruction_visitor::operator()(const instruction::function_call_t &i) {

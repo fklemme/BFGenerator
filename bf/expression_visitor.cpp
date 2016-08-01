@@ -1,13 +1,11 @@
-#pragma once
-
 #include "expression_visitor.h"
 #include "instruction_visitor.h"
 #include "scope_exit.h"
 
 namespace bf {
 
-expression_visitor::expression_visitor(build_t &build, const generator::var_ptr &var_ptr) : m_build(build) {
-    m_var_stack.push_back(var_ptr);
+expression_visitor::expression_visitor(build_t &build, const generator::var_ptr &target_variable) : m_build(build) {
+    m_var_stack.push_back(target_variable);
 }
     
 // ----- Binary or -------------------------------------------------------------
@@ -191,7 +189,7 @@ void expression_visitor::operator()(const expression::function_call_t &e) {
     };
 
     // Finally, visit all instructions in the called function.
-    instruction_visitor visitor(m_build);
+    instruction_visitor visitor(m_build, m_var_stack.back());
     for (const auto &instruction : function_it->instructions)
         boost::apply_visitor(visitor, instruction);
 }

@@ -372,8 +372,9 @@ void compiler::enable_debug_output(bool debug_output) {
 
 std::string compiler::generate(const program_t &program) const {
     build_t build(program);
+    auto return_value = build.bfg.new_var("_return_value");
     // As long as all function calls are inlined, this makes sense.
-    instruction_visitor visitor(build);
+    instruction_visitor visitor(build, return_value);
     visitor(instruction::function_call_t{"main"});
 
     if (m_debug_output)

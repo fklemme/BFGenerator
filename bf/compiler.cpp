@@ -192,12 +192,15 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         parenthesized      = '(' > expression > ')';
 
         // Instructions
-        instruction = (function_call_instr  > ';')
-                    | (variable_declaration > ';')
-                    | (variable_assignment  > ';')
-                    | print_variable // Implicit semicolon TODO!!!?
-                    | print_text     // Implicit semicolon
-                    | scan_variable  // Implicit semicolon
+        instruction = ( // Semicolon terminated instructions
+                        ( function_call_instr
+                        | variable_declaration
+                        | variable_assignment
+                        | print_variable
+                        | print_text
+                        | scan_variable
+                        ) > ';')
+                    // Non-semicolon terminated instructions
                     | if_else
                     | while_loop
                     | for_loop
@@ -206,9 +209,9 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         function_call_instr  = function_name >> '(' > -(variable_name % ',') > ')';
         variable_declaration = qi::lexeme["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u}));
         variable_assignment  = variable_name >> '=' > expression;
-        print_variable       = qi::lexeme["print"] >> variable_name > ';';
-        print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'] > ';';
-        scan_variable        = qi::lexeme["scan"] > variable_name > ';';
+        print_variable       = qi::lexeme["print"] >> variable_name;
+        print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'];
+        scan_variable        = qi::lexeme["scan"] > variable_name;
         if_else              = qi::lexeme["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);
         while_loop           = qi::lexeme["while"] > '(' > expression > ')' > instruction;
         for_loop             = qi::lexeme["for"] > '(' > -for_initialization > ';' > for_expression > ';' > -for_post_loop > ')' > instruction;

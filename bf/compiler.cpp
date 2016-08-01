@@ -198,7 +198,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
                         ( function_call_instr
                         | variable_declaration
                         | variable_assignment
-                        | print_variable
+                        | print_expression
                         | print_text
                         | scan_variable
                         ) > ';')
@@ -211,7 +211,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         function_call_instr  = function_name >> '(' > -(variable_name % ',') > ')';
         variable_declaration = KEYWORD["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u}));
         variable_assignment  = variable_name >> '=' > expression;
-        print_variable       = KEYWORD["print"] >> variable_name;
+        print_expression     = KEYWORD["print"] >> expression;
         print_text           = KEYWORD["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'];
         scan_variable        = KEYWORD["scan"] > variable_name;
         if_else              = KEYWORD["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);
@@ -257,7 +257,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         function_call_instr.name("function call instr");   // debug(function_call_instr);
         variable_declaration.name("variable declaration"); // debug(variable_declaration);
         variable_assignment.name("variable assignment");   // debug(variable_assignment);
-        print_variable.name("print variable");             // debug(print_variable);
+        print_expression.name("print expression");         // debug(print_expression);
         print_text.name("print text");                     // debug(print_text);
         scan_variable.name("scan variable");               // debug(scan_variable);
         if_else.name("if / else");                         // debug(if_else);
@@ -324,7 +324,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
     qi::rule<iterator, instruction::function_call_t(),        skipper<iterator>> function_call_instr;
     qi::rule<iterator, instruction::variable_declaration_t(), skipper<iterator>> variable_declaration;
     qi::rule<iterator, instruction::variable_assignment_t(),  skipper<iterator>> variable_assignment;
-    qi::rule<iterator, instruction::print_variable_t(),       skipper<iterator>> print_variable;
+    qi::rule<iterator, instruction::print_expression_t(),     skipper<iterator>> print_expression;
     qi::rule<iterator, instruction::print_text_t(),           skipper<iterator>> print_text;
     qi::rule<iterator, instruction::scan_variable_t(),        skipper<iterator>> scan_variable;
     qi::rule<iterator, instruction::if_else_t(),              skipper<iterator>> if_else;

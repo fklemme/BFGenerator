@@ -89,8 +89,8 @@ namespace instruction {
         expression::expression_t expression;
     };
 
-    struct print_variable_t {
-        std::string variable_name;
+    struct print_expression_t {
+        expression::expression_t expression;
     };
 
     struct print_text_t {
@@ -110,7 +110,7 @@ namespace instruction {
         function_call_t,
         variable_declaration_t,
         variable_assignment_t,
-        print_variable_t,
+        print_expression_t,
         print_text_t,
         scan_variable_t,
         boost::recursive_wrapper<if_else_t>,
@@ -245,8 +245,8 @@ BOOST_FUSION_ADAPT_STRUCT(
         (bf::expression::expression_t, expression))
 
 BOOST_FUSION_ADAPT_STRUCT(
-        bf::instruction::print_variable_t,
-        (std::string, variable_name))
+        bf::instruction::print_expression_t,
+        (bf::expression::expression_t, expression))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::print_text_t,

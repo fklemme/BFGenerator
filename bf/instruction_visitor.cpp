@@ -39,9 +39,12 @@ void instruction_visitor::operator()(const instruction::variable_assignment_t &i
     boost::apply_visitor(visitor, i.expression);
 }
 
-// ----- Print variable --------------------------------------------------------
-void instruction_visitor::operator()(const instruction::print_variable_t &i) {
-    m_build.get_var(i.variable_name)->write_output();
+// ----- Print expression ------------------------------------------------------
+void instruction_visitor::operator()(const instruction::print_expression_t &i) {
+    auto expression = m_build.bfg.new_var("_expression");
+    expression_visitor visitor(m_build, expression);
+    boost::apply_visitor(visitor, i.expression);
+    expression->write_output();
 }
 
 // ----- Print text ------------------------------------------------------------

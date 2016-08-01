@@ -15,7 +15,7 @@ public:
     void operator()(const instruction::function_call_t&);
     void operator()(const instruction::variable_declaration_t&);
     void operator()(const instruction::variable_assignment_t&);
-    void operator()(const instruction::print_variable_t&);
+    void operator()(const instruction::print_expression_t&);
     void operator()(const instruction::print_text_t&);
     void operator()(const instruction::scan_variable_t&);
     void operator()(const instruction::if_else_t&);

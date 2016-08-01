@@ -130,7 +130,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
 
     // ----- Parser grammar ----------------------------------------------------
     grammar() : grammar::base_type(program) {
-        #define KEYWORD boost::spirit::repository::distinct(qi::char_("a-zA-Z_0-9"))
+        #define KEYWORD boost::spirit::repository::distinct(qi::alnum | '_')
         program  = *function > qi::eoi;
         function = KEYWORD["function"] > function_name
                  > '(' > -(variable_name % ',') > ')'

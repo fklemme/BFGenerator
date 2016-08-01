@@ -15,19 +15,19 @@
 #endif
 
 namespace detail {
-    enum class scope_guard_helper {};
-
-    template <typename fun>
+    template <typename function>
     class scope_guard {
-        fun m_fn;
+        function m_f;
     public:
-        scope_guard(fun &&fn) : m_fn(std::forward<fun>(fn)) {}
-        ~scope_guard() {m_fn();}
+        scope_guard(function &&f) : m_f(std::forward<function>(f)) {}
+        ~scope_guard() {m_f();}
     };
 
-    template <typename fun>
-    scope_guard<fun> operator+(scope_guard_helper, fun &&fn) {
-        return scope_guard<fun>(std::forward<fun>(fn));
+    enum class scope_guard_helper {};
+
+    template <typename function>
+    scope_guard<function> operator+(scope_guard_helper, function &&f) {
+        return scope_guard<function>(std::forward<function>(f));
     }
 }
 

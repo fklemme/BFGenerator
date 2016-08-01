@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <boost/spirit/include/phoenix.hpp>
 #include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/repository/include/qi_distinct.hpp>
 #include <iostream> // for std::cerr in parser
 #include <ostream>
 #include <stdexcept>
@@ -129,8 +130,9 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
 
     // ----- Parser grammar ----------------------------------------------------
     grammar() : grammar::base_type(program) {
+        #define KEYWORD boost::spirit::repository::distinct(qi::char_("a-zA-Z_0-9"))
         program  = *function;
-        function = qi::lexeme["function"] > function_name
+        function = KEYWORD["function"] > function_name
                  > '(' > -(variable_name % ',') > ')'
                  > '{' > *instruction > '}';
         #define KEYWORDS (qi::lit("function") | "var" | "print" | "scan" | "if" | "else" | "while" | "for")
@@ -207,14 +209,14 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
                     | instruction_block;
 
         function_call_instr  = function_name >> '(' > -(variable_name % ',') > ')';
-        variable_declaration = qi::lexeme["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u}));
+        variable_declaration = KEYWORD["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u}));
         variable_assignment  = variable_name >> '=' > expression;
-        print_variable       = qi::lexeme["print"] >> variable_name;
-        print_text           = qi::lexeme["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'];
-        scan_variable        = qi::lexeme["scan"] > variable_name;
-        if_else              = qi::lexeme["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);
-        while_loop           = qi::lexeme["while"] > '(' > expression > ')' > instruction;
-        for_loop             = qi::lexeme["for"] > '(' > -for_initialization > ';' > for_expression > ';' > -for_post_loop > ')' > instruction;
+        print_variable       = KEYWORD["print"] >> variable_name;
+        print_text           = KEYWORD["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'];
+        scan_variable        = KEYWORD["scan"] > variable_name;
+        if_else              = KEYWORD["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);
+        while_loop           = KEYWORD["while"] > '(' > expression > ')' > instruction;
+        for_loop             = KEYWORD["for"] > '(' > -for_initialization > ';' > for_expression > ';' > -for_post_loop > ')' > instruction;
         for_initialization   = variable_declaration | variable_assignment;
         for_expression       = expression | qi::attr(expression::value_t{1u});
         for_post_loop        = variable_assignment.alias();

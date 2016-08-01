@@ -162,8 +162,8 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
 
         // 6: For relational operators < and <= respectively
         //    For relational operators > and >= respectively
-        expression_6 = binary_lt[check_rotate] | binary_leq[check_rotate]
-                     | binary_gt[check_rotate] | binary_geq[check_rotate]
+        expression_6 = binary_leq[check_rotate] | binary_lt[check_rotate] // check "equal" version first
+                     | binary_geq[check_rotate] | binary_gt[check_rotate]
                      | expression_4[qi::_val = qi::_1]; // Pass through
         binary_lt    = expression_4 >>            '<'   > expression_6;
         binary_leq   = expression_4 >> qi::lexeme["<="] > expression_6;

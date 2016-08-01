@@ -3,10 +3,30 @@
  * ----------------------------------- */
 
 function main() {
-    // TODO: Query user for input.
-    var cols = 40;
-    var rows = 30;
-    
+    print "Cols: ";
+    var cols = query_int();
+    print "Rows: ";
+    var rows = query_int();
+
+    print_img(cols, rows);
+}
+
+// Read numbers from input.
+function query_int() {
+    var int = 0;
+    var s;
+    scan s;
+
+    while (s >= '0' && s <= '9') {
+        int = int * 10 + (s - '0');
+        scan s;
+    }
+
+    return int;
+}
+
+// Print pattern to fulfill Ueb3Aufg2.
+function print_img(cols, rows) {
     for (var i = 0; i < rows; i = i + 1) {
         var count = 0;
         for (var j = 0; j < cols; j = j + 1) {

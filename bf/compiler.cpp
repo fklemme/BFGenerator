@@ -188,7 +188,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
 
         // Lowest expression level
         simple             = value | function_call_expr | variable | parenthesized;
-        value              = qi::uint_;
+        value              = qi::uint_ | (qi::lit('\'') > qi::char_ > '\'');
         function_call_expr = function_name >> '(' > -(variable_name % ',') > ')';
         variable           = variable_name;
         parenthesized      = '(' > expression > ')';

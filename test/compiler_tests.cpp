@@ -91,15 +91,35 @@ BOOST_AUTO_TEST_CASE(compiler_scan_and_print) {
             var a;
             scan a;
             print a;
+            print a + 2;
         }
     )";
 
     bf::compiler bfc;
     const std::string program = bfc.compile(source);
 
-    bfc_check(program, "Echo program", {2}, {2});
-    bfc_check(program, "Echo program", {5}, {5});
-    bfc_check(program, "Echo program", {17}, {17});
+    bfc_check(program, "Echo, plus two", {2},  {2,  4});
+    bfc_check(program, "Echo, plus two", {5},  {5,  7});
+    bfc_check(program, "Echo, plus two", {17}, {17, 19});
+}
+
+// ----- Compiler: Scan and print 2 --------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_scan_and_print_2) {
+    const std::string source = R"(
+        function main() {
+            var a;
+            scan a;
+            print a;
+            print 'a' + a;
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Echo, plus 'a'", {2},  {2,  'c'});
+    bfc_check(program, "Echo, plus 'a'", {5},  {5,  'f'});
+    bfc_check(program, "Echo, plus 'a'", {17}, {17, ('a' + 17)});
 }
 
 // ----- Compiler: Arithmetics -------------------------------------------------

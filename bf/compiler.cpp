@@ -131,7 +131,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
     // ----- Parser grammar ----------------------------------------------------
     grammar() : grammar::base_type(program) {
         #define KEYWORD boost::spirit::repository::distinct(qi::char_("a-zA-Z_0-9"))
-        program  = *function;
+        program  = *function > qi::eoi;
         function = KEYWORD["function"] > function_name
                  > '(' > -(variable_name % ',') > ')'
                  > '{' > *instruction > '}';
@@ -347,10 +347,10 @@ program_t parse(const std::string &source) {
     program_t program;
 
     // Build program struct from source input.
-    auto begin = source.begin(), end = source.end();
-    const bool success = qi::phrase_parse(begin, end, gram, skip, program);
+    auto it = source.begin(), end = source.end();
+    const bool success = qi::phrase_parse(it, end, gram, skip, program);
 
-    if (!success || begin != end)
+    if (!success || it != end)
         throw std::logic_error("Parse unsuccessful!");
 
     // ----- Check program struct ----------------------------------------------

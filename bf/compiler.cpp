@@ -135,7 +135,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         function = KEYWORD["function"] > function_name
                  > '(' > -(variable_name % ',') > ')'
                  > '{' > *instruction > '}';
-        #define KEYWORDS (qi::lit("function") | "var" | "print" | "scan" | "if" | "else" | "while" | "for")
+        #define KEYWORDS KEYWORD[qi::lit("function") | "var" | "print" | "scan" | "if" | "else" | "while" | "for"]
         function_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
         variable_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
 

@@ -92,9 +92,9 @@ BOOST_AUTO_TEST_CASE(compiler_function_call) {
 BOOST_AUTO_TEST_CASE(compiler_function_arguments) {
     const std::string source = R"(
         function main() {
-            var a;
-            scan a;
-            test(a);
+            var variable;
+            scan variable;
+            test(variable);
         }
         function test(x) {
             print x;
@@ -112,10 +112,8 @@ BOOST_AUTO_TEST_CASE(compiler_function_arguments) {
 BOOST_AUTO_TEST_CASE(compiler_function_return_value) {
     const std::string source = R"(
         function main() {
-            var a = five();
-            var b = zero();
-            print a;
-            print b;
+            print five();
+            print zero();
         }
         function five() {
             return 5;
@@ -133,10 +131,10 @@ BOOST_AUTO_TEST_CASE(compiler_function_return_value) {
 BOOST_AUTO_TEST_CASE(compiler_scan_and_print) {
     const std::string source = R"(
         function main() {
-            var a;
-            scan a;
-            print a;
-            print a + 2;
+            var variable;
+            scan variable;
+            print variable;
+            print variable + 2;
         }
     )";
 

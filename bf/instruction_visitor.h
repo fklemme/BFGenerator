@@ -18,6 +18,7 @@ public:
     void operator()(const instruction::print_expression_t&);
     void operator()(const instruction::print_text_t&);
     void operator()(const instruction::scan_variable_t&);
+    void operator()(const instruction::return_statement_t&);
     void operator()(const instruction::if_else_t&);
     void operator()(const instruction::while_loop_t&);
     void operator()(const instruction::for_loop_t&);

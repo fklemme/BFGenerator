@@ -12,7 +12,7 @@ void instruction_visitor::operator()(const instruction::function_call_t &i) {
     // TODO: Describe this kind-of wrapper.
     auto return_value = m_build.bfg.new_var("_return_value", 0);
     expression_visitor visitor(m_build, return_value);
-    expression::function_call_t function_call{i.function_name, i.variable_names};
+    expression::function_call_t function_call{i.function_name, i.arguments};
     visitor(function_call);
 }
 
@@ -68,6 +68,12 @@ void instruction_visitor::operator()(const instruction::print_text_t &i) {
 // ----- Scan variable ---------------------------------------------------------
 void instruction_visitor::operator()(const instruction::scan_variable_t &i) {
     m_build.get_var(i.variable_name)->read_input();
+}
+
+// ----- Return statement ------------------------------------------------------
+void instruction_visitor::operator()(const instruction::return_statement_t &i) {
+    expression_visitor visitor(m_build, m_return_value);
+    boost::apply_visitor(visitor, i.expression);
 }
 
 // ----- Conditional statement -------------------------------------------------

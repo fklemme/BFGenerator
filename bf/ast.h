@@ -21,7 +21,7 @@ namespace expression {
     struct parenthesized_expression_t;
 
     typedef boost::variant<
-        // First type must not contain member of type expression_t.
+        // First type must not contain member of type expression_t!
         boost::recursive_wrapper<value_t>,
         boost::recursive_wrapper<binary_operation_t<operator_t::or_>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::and_>>,
@@ -58,8 +58,8 @@ namespace expression {
     };
 
     struct function_call_t {
-        std::string              function_name;
-        std::vector<std::string> variable_names;
+        std::string               function_name;
+        std::vector<expression_t> arguments;
     };
 
     struct variable_t {
@@ -75,8 +75,8 @@ namespace expression {
 namespace instruction {
 
     struct function_call_t {
-        std::string              function_name;
-        std::vector<std::string> variable_names;
+        std::string                           function_name;
+        std::vector<expression::expression_t> arguments;
     };
 
     struct variable_declaration_t {
@@ -101,6 +101,10 @@ namespace instruction {
         std::string variable_name;
     };
 
+    struct return_statement_t {
+        expression::expression_t expression;
+    };
+
     struct if_else_t;
     struct while_loop_t;
     struct for_loop_t;
@@ -113,6 +117,7 @@ namespace instruction {
         print_expression_t,
         print_text_t,
         scan_variable_t,
+        return_statement_t,
         boost::recursive_wrapper<if_else_t>,
         boost::recursive_wrapper<while_loop_t>,
         boost::recursive_wrapper<for_loop_t>,
@@ -218,8 +223,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::function_call_t,
-        (std::string,              function_name)
-        (std::vector<std::string>, variable_names))
+        (std::string,                               function_name)
+        (std::vector<bf::expression::expression_t>, arguments))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::variable_t,
@@ -231,8 +236,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::function_call_t,
-        (std::string,              function_name)
-        (std::vector<std::string>, variable_names))
+        (std::string,                               function_name)
+        (std::vector<bf::expression::expression_t>, arguments))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::variable_declaration_t,
@@ -255,6 +260,10 @@ BOOST_FUSION_ADAPT_STRUCT(
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::scan_variable_t,
         (std::string, variable_name))
+
+BOOST_FUSION_ADAPT_STRUCT(
+        bf::instruction::return_statement_t,
+        (bf::expression::expression_t, expression))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::instruction::if_else_t,

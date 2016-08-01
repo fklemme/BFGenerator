@@ -43,6 +43,33 @@ BOOST_AUTO_TEST_CASE(example_hello_world) {
     bfc_check(program, "Hello world", {}, {result.begin(), result.end()});
 }
 
+// ----- Example program: Min/Max ----------------------------------------------
+BOOST_AUTO_TEST_CASE(example_min_max) {
+    const std::string source = R"(
+        function main() {
+            var  a; var  b;
+            scan a; scan b;
+            print min(a, b);
+            print max(a, b);
+        }
+        function min(a, b) {
+            if (a < b) return a;
+            else       return b;
+        }
+        function max(a, b) {
+            if (a > b) return a;
+            else       return b;
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Min/Max", {2, 5}, {2, 5});
+    bfc_check(program, "Min/Max", {7, 3}, {3, 7});
+    bfc_check(program, "Min/Max", {9, 9}, {9, 9});
+}
+
 // ----- Compiler: Function call -----------------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_function_call) {
     const std::string source = R"(
@@ -61,8 +88,27 @@ BOOST_AUTO_TEST_CASE(compiler_function_call) {
     bfc_check(program, "Function call 'test()'", {}, {result.begin(), result.end()});
 }
 
+// ----- Compiler: Function arguments ------------------------------------------
+BOOST_AUTO_TEST_CASE(compiler_function_arguments) {
+    const std::string source = R"(
+        function main() {
+            var a;
+            scan a;
+            test(a);
+        }
+        function test(x) {
+            print x;
+        }
+    )";
+
+    bf::compiler bfc;
+    const std::string program = bfc.compile(source);
+
+    bfc_check(program, "Echo", {2}, {2});
+    bfc_check(program, "Echo", {6}, {6});
+}
+
 // ----- Compiler: Function return value ---------------------------------------
-/*
 BOOST_AUTO_TEST_CASE(compiler_function_return_value) {
     const std::string source = R"(
         function main() {
@@ -82,7 +128,6 @@ BOOST_AUTO_TEST_CASE(compiler_function_return_value) {
 
     bfc_check(program, "Function return value", {}, {5, 0});
 }
-*/
 
 // ----- Compiler: Scan and print ----------------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_scan_and_print) {

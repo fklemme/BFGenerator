@@ -189,7 +189,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         // Lowest expression level
         simple             = value | function_call_expr | variable | parenthesized;
         value              = qi::uint_ | (qi::lit('\'') > qi::char_ > '\'');
-        function_call_expr = function_name >> '(' > -(variable_name % ',') > ')';
+        function_call_expr = function_name >> '(' > -(expression % ',') > ')';
         variable           = variable_name;
         parenthesized      = '(' > expression > ')';
 
@@ -201,6 +201,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
                         | print_expression
                         | print_text
                         | scan_variable
+                        | return_statement
                         ) > ';')
                     // Non-semicolon terminated instructions
                     | if_else
@@ -208,12 +209,13 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
                     | for_loop
                     | instruction_block;
 
-        function_call_instr  = function_name >> '(' > -(variable_name % ',') > ')';
+        function_call_instr  = function_name >> '(' > -(expression % ',') > ')';
         variable_declaration = KEYWORD["var"] > variable_name > (('=' > expression) | qi::attr(expression::value_t{0u}));
         variable_assignment  = variable_name >> '=' > expression;
         print_expression     = KEYWORD["print"] >> expression;
         print_text           = KEYWORD["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'];
         scan_variable        = KEYWORD["scan"] > variable_name;
+        return_statement     = KEYWORD["return"] > expression;
         if_else              = KEYWORD["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);
         while_loop           = KEYWORD["while"] > '(' > expression > ')' > instruction;
         for_loop             = KEYWORD["for"] > '(' > -for_initialization > ';' > for_expression > ';' > -for_post_loop > ')' > instruction;
@@ -260,6 +262,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         print_expression.name("print expression");         // debug(print_expression);
         print_text.name("print text");                     // debug(print_text);
         scan_variable.name("scan variable");               // debug(scan_variable);
+        return_statement.name("return statement");         // debug(return_statement);
         if_else.name("if / else");                         // debug(if_else);
         while_loop.name("while loop");                     // debug(while_loop);
         for_loop.name("for loop");                         // debug(for_loop);
@@ -327,6 +330,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
     qi::rule<iterator, instruction::print_expression_t(),     skipper<iterator>> print_expression;
     qi::rule<iterator, instruction::print_text_t(),           skipper<iterator>> print_text;
     qi::rule<iterator, instruction::scan_variable_t(),        skipper<iterator>> scan_variable;
+    qi::rule<iterator, instruction::return_statement_t,       skipper<iterator>> return_statement;
     qi::rule<iterator, instruction::if_else_t(),              skipper<iterator>> if_else;
     qi::rule<iterator, instruction::while_loop_t(),           skipper<iterator>> while_loop;
     qi::rule<iterator, instruction::for_loop_t(),             skipper<iterator>> for_loop;

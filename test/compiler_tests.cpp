@@ -62,6 +62,7 @@ BOOST_AUTO_TEST_CASE(compiler_function_call) {
 }
 
 // ----- Compiler: Function return value ---------------------------------------
+/*
 BOOST_AUTO_TEST_CASE(compiler_function_return_value) {
     const std::string source = R"(
         function main() {
@@ -81,6 +82,7 @@ BOOST_AUTO_TEST_CASE(compiler_function_return_value) {
 
     bfc_check(program, "Function return value", {}, {5, 0});
 }
+*/
 
 // ----- Compiler: Scan and print ----------------------------------------------
 BOOST_AUTO_TEST_CASE(compiler_scan_and_print) {

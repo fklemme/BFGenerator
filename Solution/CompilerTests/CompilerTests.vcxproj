@@ -21,13 +21,17 @@
   <ItemGroup>
     <ClInclude Include="..\..\bf\ast.h" />
     <ClInclude Include="..\..\bf\compiler.h" />
+    <ClInclude Include="..\..\bf\expression_visitor.h" />
     <ClInclude Include="..\..\bf\generator.h" />
+    <ClInclude Include="..\..\bf\instruction_visitor.h" />
     <ClInclude Include="..\..\bf\interpreter.h" />
     <ClInclude Include="..\..\bf\scope_exit.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\bf\compiler.cpp" />
+    <ClCompile Include="..\..\bf\expression_visitor.cpp" />
     <ClCompile Include="..\..\bf\generator.cpp" />
+    <ClCompile Include="..\..\bf\instruction_visitor.cpp" />
     <ClCompile Include="..\..\test\compiler_tests.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

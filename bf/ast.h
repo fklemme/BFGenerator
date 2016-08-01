@@ -16,8 +16,8 @@ namespace expression {
     template <operator_t op> struct binary_operation_t;
     template <operator_t op> struct unary_operation_t;
     struct value_t;
+    struct function_call_t;
     struct variable_t;
-    //struct function_call_t;
     struct parenthesized_expression_t;
 
     typedef boost::variant<
@@ -35,8 +35,8 @@ namespace expression {
         boost::recursive_wrapper<binary_operation_t<operator_t::sub>>,
         boost::recursive_wrapper<binary_operation_t<operator_t::mul>>,
         boost::recursive_wrapper<unary_operation_t<operator_t::not_>>,
+        boost::recursive_wrapper<function_call_t>,
         boost::recursive_wrapper<variable_t>,
-        //boost::recursive_wrapper<function_call_t>,
         boost::recursive_wrapper<parenthesized_expression_t>
     > expression_t;
     
@@ -57,14 +57,14 @@ namespace expression {
         unsigned value;
     };
 
+    struct function_call_t {
+        std::string              function_name;
+        std::vector<std::string> variable_names;
+    };
+
     struct variable_t {
         std::string variable_name;
     };
-
-    //struct function_call_t {
-    //    std::string              function_name;
-    //    std::vector<std::string> variable_names;
-    //};
 
     struct parenthesized_expression_t {
         expression_t expression;
@@ -217,13 +217,13 @@ BOOST_FUSION_ADAPT_STRUCT(
         (unsigned, value))
 
 BOOST_FUSION_ADAPT_STRUCT(
+        bf::expression::function_call_t,
+        (std::string,              function_name)
+        (std::vector<std::string>, variable_names))
+
+BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::variable_t,
         (std::string, variable_name))
-
-//BOOST_FUSION_ADAPT_STRUCT(
-//        bf::expression::function_call_t,
-//        (std::string,              function_name)
-//        (std::vector<std::string>, variable_names))
 
 BOOST_FUSION_ADAPT_STRUCT(
         bf::expression::parenthesized_expression_t,

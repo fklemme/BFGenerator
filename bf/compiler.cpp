@@ -6,7 +6,7 @@
 
 #include "compiler.h"
 #include "generator.h"
-#include "scope_exit.h"
+#include "instruction_visitor.h"
 
 #define BOOST_RESULT_OF_USE_DECLTYPE
 #define BOOST_SPIRIT_USE_PHOENIX_V3
@@ -185,10 +185,10 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         unary_not    = '!' > simple;
 
         // Lowest expression level
-        simple             = value | variable | parenthesized;
+        simple             = value | function_call_expr | variable | parenthesized;
         value              = qi::uint_;
+        function_call_expr = function_name >> '(' > -(variable_name % ',') > ')';
         variable           = variable_name;
-        //function_call_expr = function_name >> '(' > -(variable_name % ',') > ')';
         parenthesized      = '(' > expression > ')';
 
         // Instructions
@@ -244,8 +244,8 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         unary_not.name("unary not");                       // debug(unary_not);
         simple.name("simple");                             // debug(simple);
         value.name("value");                               // debug(value);
+        function_call_expr.name("function call expr");     // debug(function_call_expr);
         variable.name("variable");                         // debug(variable);
-        //function_call_expr.name("function call expr");     // debug(function_call_expr);
         parenthesized.name("parenthesized expression");    // debug(parenthesized);
 
         instruction.name("instruction");                   // debug(instruction);
@@ -311,8 +311,8 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
     qi::rule<iterator, expression::unary_operation_t<expression::operator_t::not_>(),  skipper<iterator>> unary_not;
     qi::rule<iterator, expression::expression_t(),                                     skipper<iterator>> simple;
     qi::rule<iterator, expression::value_t(),                                          skipper<iterator>> value;
+    qi::rule<iterator, expression::function_call_t(),                                  skipper<iterator>> function_call_expr;
     qi::rule<iterator, expression::variable_t(),                                       skipper<iterator>> variable;
-    //qi::rule<iterator, expression::function_call_t(),                                  skipper<iterator>> function_call_expr;
     qi::rule<iterator, expression::parenthesized_expression_t(),                       skipper<iterator>> parenthesized;
 
     qi::rule<iterator, instruction::instruction_t(),          skipper<iterator>> instruction;
@@ -358,390 +358,6 @@ program_t parse(const std::string &source) {
     return program;
 }
 
-typedef std::vector<std::map<std::string, generator::var_ptr>> scope_tree_t;
-
-// ----- Evaluate AST expressions ----------------------------------------------
-class expression_visitor : public boost::static_visitor<void> {
-public:
-    expression_visitor(generator &bfg, const scope_tree_t &scope, const generator::var_ptr &var_ptr)
-        : m_bfg(bfg), m_scope(scope)
-    {
-        m_var_stack.push_back(var_ptr);
-    }
-    
-    // ----- Binary or ---------------------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::or_> &e) {
-        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
-            if (v->value)
-                m_var_stack.back()->set(1);
-            else
-                boost::apply_visitor(*this, e.lhs);
-        } else {
-            boost::apply_visitor(*this, e.lhs);
-            auto rhs_ptr = m_bfg.new_var("_binary_or_rhs");
-            m_var_stack.push_back(rhs_ptr);
-            boost::apply_visitor(*this, e.rhs);
-            m_var_stack.pop_back();
-            m_var_stack.back()->bool_or(*rhs_ptr);
-        }
-    }
-
-    // ----- Binary and --------------------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::and_> &e) {
-        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
-            if (v->value)
-                boost::apply_visitor(*this, e.lhs);
-            else
-                m_var_stack.back()->set(0);
-        } else {
-            boost::apply_visitor(*this, e.lhs);
-            auto rhs_ptr = m_bfg.new_var("_binary_and_rhs");
-            m_var_stack.push_back(rhs_ptr);
-            boost::apply_visitor(*this, e.rhs);
-            m_var_stack.pop_back();
-            m_var_stack.back()->bool_and(*rhs_ptr);
-        }
-    }
-
-    // ----- Binary equal ------------------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::eq> &e) {
-        boost::apply_visitor(*this, e.lhs);
-        auto rhs_ptr = m_bfg.new_var("_binary_eq_rhs");
-        m_var_stack.push_back(rhs_ptr);
-        boost::apply_visitor(*this, e.rhs);
-        m_var_stack.pop_back();
-        m_var_stack.back()->equal(*rhs_ptr);
-    }
-
-    // ----- Binary not equal --------------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::neq> &e) {
-        boost::apply_visitor(*this, e.lhs);
-        auto rhs_ptr = m_bfg.new_var("_binary_neq_rhs");
-        m_var_stack.push_back(rhs_ptr);
-        boost::apply_visitor(*this, e.rhs);
-        m_var_stack.pop_back();
-        m_var_stack.back()->not_equal(*rhs_ptr);
-    }
-
-    // ----- Binary lower than -------------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::lt> &e) {
-        boost::apply_visitor(*this, e.lhs);
-        auto rhs_ptr = m_bfg.new_var("_binary_lt_rhs");
-        m_var_stack.push_back(rhs_ptr);
-        boost::apply_visitor(*this, e.rhs);
-        m_var_stack.pop_back();
-        m_var_stack.back()->lower_than(*rhs_ptr);
-    }
-
-    // ----- Binary lower equal ------------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::leq> &e) {
-        boost::apply_visitor(*this, e.lhs);
-        auto rhs_ptr = m_bfg.new_var("_binary_leq_rhs");
-        m_var_stack.push_back(rhs_ptr);
-        boost::apply_visitor(*this, e.rhs);
-        m_var_stack.pop_back();
-        m_var_stack.back()->lower_equal(*rhs_ptr);
-    }
-
-    // ----- Binary greater than -----------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::gt> &e) {
-        boost::apply_visitor(*this, e.lhs);
-        auto rhs_ptr = m_bfg.new_var("_binary_gt_rhs");
-        m_var_stack.push_back(rhs_ptr);
-        boost::apply_visitor(*this, e.rhs);
-        m_var_stack.pop_back();
-        m_var_stack.back()->greater_than(*rhs_ptr);
-    }
-
-    // ----- Binary greater equal ----------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::geq> &e) {
-        boost::apply_visitor(*this, e.lhs);
-        auto rhs_ptr = m_bfg.new_var("_binary_geq_rhs");
-        m_var_stack.push_back(rhs_ptr);
-        boost::apply_visitor(*this, e.rhs);
-        m_var_stack.pop_back();
-        m_var_stack.back()->greater_equal(*rhs_ptr);
-    }
-
-    // ----- Binary add --------------------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::add> &e) {
-        boost::apply_visitor(*this, e.lhs);
-        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
-            m_var_stack.back()->add(v->value);
-        } else {
-            auto rhs_ptr = m_bfg.new_var("_binary_add_rhs");
-            m_var_stack.push_back(rhs_ptr);
-            boost::apply_visitor(*this, e.rhs);
-            m_var_stack.pop_back();
-            m_var_stack.back()->add(*rhs_ptr);
-        }
-    }
-
-    // ----- Binary subtract ---------------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::sub> &e) {
-        boost::apply_visitor(*this, e.lhs);
-        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
-            m_var_stack.back()->subtract(v->value);
-        } else {
-            auto rhs_ptr = m_bfg.new_var("_binary_sub_rhs");
-            m_var_stack.push_back(rhs_ptr);
-            boost::apply_visitor(*this, e.rhs);
-            m_var_stack.pop_back();
-            m_var_stack.back()->subtract(*rhs_ptr);
-        }
-    }
-
-    // ----- Binary multiply ---------------------------------------------------
-    void operator()(const expression::binary_operation_t<expression::operator_t::mul> &e) {
-        boost::apply_visitor(*this, e.lhs);
-        if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
-            m_var_stack.back()->multiply(v->value);
-        } else {
-            auto rhs_ptr = m_bfg.new_var("_binary_mul_rhs");
-            m_var_stack.push_back(rhs_ptr);
-            boost::apply_visitor(*this, e.rhs);
-            m_var_stack.pop_back();
-            m_var_stack.back()->multiply(*rhs_ptr);
-        }
-    }
-
-    // ----- Unary not ---------------------------------------------------------
-    void operator()(const expression::unary_operation_t<expression::operator_t::not_> &e) {
-        boost::apply_visitor(*this, e.expression);
-        m_var_stack.back()->bool_not(*m_var_stack.back());
-    }
-
-    // ----- Value -------------------------------------------------------------
-    void operator()(const expression::value_t &e) {
-        m_var_stack.back()->set(e.value);
-    }
-
-    // ----- Variable ----------------------------------------------------------
-    void operator()(const expression::variable_t &e) {
-        m_var_stack.back()->copy(*get_var(e.variable_name));
-    }
-
-    // ----- Function call -----------------------------------------------------
-    //void operator()(const expression::function_call_t &e) {
-        // TODO
-    //}
-
-    // ----- Parenthesized expression ------------------------------------------
-    void operator()(const expression::parenthesized_expression_t &e) {
-        boost::apply_visitor(*this, e.expression);
-    }
-
-private:
-    const generator::var_ptr &get_var(const std::string &variable_name) const {
-        for (auto scope_it = m_scope.rbegin(); scope_it != m_scope.rend(); ++scope_it) {
-            auto it = scope_it->find(variable_name);
-            if (it != scope_it->end())
-                return it->second;
-        }
-
-        throw std::logic_error("Variable not declared in this scope: " + variable_name);
-    }
-
-    generator                       &m_bfg;
-    const scope_tree_t              &m_scope;
-    std::vector<generator::var_ptr> m_var_stack;
-};
-
-// ----- Evaluate AST instructions ---------------------------------------------
-class instruction_visitor : public boost::static_visitor<void> {
-public:
-    instruction_visitor(const program_t &program) : m_program(program) {}
-
-    // ----- Function call -----------------------------------------------------
-    void operator()(const instruction::function_call_t &i) {
-        // Check if called function exists.
-        auto function_it = std::find_if(m_program.begin(), m_program.end(),
-                [&i](const function_t &f) {return f.name == i.function_name;});
-        if (function_it == m_program.end())
-            throw std::logic_error("Function not found: " + i.function_name);
-
-        // Check for recursion (which is not supported).
-        auto recursion_it = std::find(m_call_stack.begin(), m_call_stack.end(), i.function_name);
-        if (recursion_it != m_call_stack.end()) {
-            std::string call_stack_dump;
-            for (const auto &function : m_call_stack)
-                call_stack_dump += function + ", ";
-            call_stack_dump += "(*) " + i.function_name;
-            throw std::logic_error("Recursion not supported: " + call_stack_dump);
-        }
-
-        // Provide a clean scope for the called function.
-        std::vector<std::map<std::string, generator::var_ptr>> scope_backup;
-        std::swap(m_scope, scope_backup);
-        m_scope.emplace_back();
-        // TODO: Copy/handle arguments
-        // Restore old scope after the function returns.
-        SCOPE_EXIT {
-            m_scope.pop_back();
-            std::swap(m_scope, scope_backup);
-        };
-
-        // Just for error report on recursion: Keep track of the call stack.
-        m_call_stack.push_back(i.function_name);
-        SCOPE_EXIT {m_call_stack.pop_back();};
-
-        // Finally, visit all instructions in the called function.
-        for (const auto &instruction : function_it->instructions)
-            boost::apply_visitor(*this, instruction);
-    }
-
-    // ----- Variable declaration ----------------------------------------------
-    void operator()(const instruction::variable_declaration_t &i) {
-        auto it = m_scope.back().find(i.variable_name);
-        if (it != m_scope.back().end())
-            throw std::logic_error("Redeclaration of variable: " + i.variable_name);
-
-        // If expression is a simple constant, pass it as init value.
-        if (const expression::value_t *v = boost::get<expression::value_t>(&i.expression))
-            m_scope.back().emplace(i.variable_name, m_bfg.new_var(i.variable_name, v->value));
-        else {
-            auto var_ptr = m_bfg.new_var(i.variable_name);
-            m_scope.back().emplace(i.variable_name, var_ptr);
-            auto visitor = expression_visitor(m_bfg, m_scope, var_ptr);
-            boost::apply_visitor(visitor, i.expression);
-        }
-    }
-
-    // ----- Variable assignment -----------------------------------------------
-    void operator()(const instruction::variable_assignment_t &i) {
-        auto visitor = expression_visitor(m_bfg, m_scope, get_var(i.variable_name));
-        boost::apply_visitor(visitor, i.expression);
-    }
-
-    // ----- Print variable ----------------------------------------------------
-    void operator()(const instruction::print_variable_t &i) {
-        get_var(i.variable_name)->write_output();
-    }
-
-    // ----- Print text --------------------------------------------------------
-    void operator()(const instruction::print_text_t &i) {
-        std::string text = i.text;
-        // Replace character sequence "\n" with character '\n' and so on...
-        // TODO: This can be enhanced for sure.
-        auto it = text.begin();
-        while ((it = std::find(it, text.end(), '\\')) != text.end()) {
-            text.erase(it);
-            if (it != text.end())
-                switch (*it) {
-                    case 'n': *it = '\n'; break;
-                    case 't': *it = '\t'; break;
-                    default: throw std::logic_error(std::string("Unknown char: '\\") + *it + "'");
-                }
-        }
-        m_bfg.print(text);
-    }
-
-    // ----- Scan variable -----------------------------------------------------
-    void operator()(const instruction::scan_variable_t &i) {
-        get_var(i.variable_name)->read_input();
-    }
-
-    // ----- Conditional statement ---------------------------------------------
-    void operator()(const instruction::if_else_t &i) {
-        auto condition = m_bfg.new_var("_if_condition");
-        auto visitor = expression_visitor(m_bfg, m_scope, condition);
-        boost::apply_visitor(visitor, i.condition);
-        
-        m_bfg.if_begin(*condition);
-        {
-            // Provide a new scope for "then" part.
-            m_scope.emplace_back();
-            SCOPE_EXIT {m_scope.pop_back();};
-            boost::apply_visitor(*this, i.if_instruction);
-        }
-        if (i.else_instruction) {
-            m_bfg.else_begin();
-            // Provide a new scope for "else" part.
-            m_scope.emplace_back();
-            SCOPE_EXIT {m_scope.pop_back();};
-            boost::apply_visitor(*this, *i.else_instruction);
-        }
-        m_bfg.if_end();
-    }
-
-    // ----- While loop --------------------------------------------------------
-    void operator()(const instruction::while_loop_t &i) {
-        auto condition = m_bfg.new_var("_while_condition");
-        auto visitor = expression_visitor(m_bfg, m_scope, condition);
-        boost::apply_visitor(visitor, i.condition);
-
-        m_bfg.while_begin(*condition);
-        {
-            // Provide a new scope for loop body.
-            m_scope.emplace_back();
-            SCOPE_EXIT {m_scope.pop_back();};
-            boost::apply_visitor(*this, i.instruction);
-        }
-        // Re-evaluate condition.
-        boost::apply_visitor(visitor, i.condition);
-        m_bfg.while_end(*condition);
-    }
-
-    // ----- For loop ----------------------------------------------------------
-    void operator()(const instruction::for_loop_t &i) {
-        // Provide a new scope for loop header.
-        m_scope.emplace_back();
-        SCOPE_EXIT {m_scope.pop_back();};
-
-        if (i.initialization)
-            boost::apply_visitor(*this, *i.initialization);
-
-        auto condition = m_bfg.new_var("_for_condition");
-        auto visitor = expression_visitor(m_bfg, m_scope, condition);
-        boost::apply_visitor(visitor, i.condition);
-
-        m_bfg.while_begin(*condition);
-        {
-            // Provide a new scope for loop body.
-            m_scope.emplace_back();
-            SCOPE_EXIT {m_scope.pop_back();};
-            boost::apply_visitor(*this, i.instruction);
-        }
-        // Post-loop instruction.
-        if (i.post_loop)
-            boost::apply_visitor(*this, *i.post_loop);
-
-        // Re-evaluate condition.
-        boost::apply_visitor(visitor, i.condition);
-        m_bfg.while_end(*condition);
-    }
-
-    // ----- Instruction block -------------------------------------------------
-    void operator()(const instruction::instruction_block_t &i) {
-        // Provide a new scope for variable names.
-        m_scope.emplace_back();
-        SCOPE_EXIT {m_scope.pop_back();};
-
-        for (const auto &instruction : i.instructions)
-            boost::apply_visitor(*this, instruction);
-    }
-
-    const generator &get_generator() const {
-        return m_bfg;
-    }
-
-private:
-    const generator::var_ptr &get_var(const std::string &variable_name) const {
-        for (auto scope_it = m_scope.rbegin(); scope_it != m_scope.rend(); ++scope_it) {
-            auto it = scope_it->find(variable_name);
-            if (it != scope_it->end())
-                return it->second;
-        }
-
-        throw std::logic_error("Variable not declared in this scope: " + variable_name);
-    }
-
-    const program_t          &m_program;
-    generator                m_bfg;
-    scope_tree_t             m_scope;
-    std::vector<std::string> m_call_stack;
-};
-
 // ----- Generate Brainfuck code from AST --------------------------------------
 compiler::compiler() : m_debug_output(false) {}
 
@@ -755,16 +371,26 @@ void compiler::enable_debug_output(bool debug_output) {
 }
 
 std::string compiler::generate(const program_t &program) const {
+    build_t build(program);
     // As long as all function calls are inlined, this makes sense.
-    instruction_visitor visitor(program);
-    instruction::function_call_t call_to_main {"main"};
-    instruction::instruction_t start = call_to_main;
-    boost::apply_visitor(visitor, start);
+    instruction_visitor visitor(build);
+    visitor(instruction::function_call_t{"main"});
 
     if (m_debug_output)
-        return visitor.get_generator().get_code();
+        return build.bfg.get_code();
     else
-        return visitor.get_generator().get_minimal_code();
+        return build.bfg.get_minimal_code();
+}
+
+// ----- Helper function -------------------------------------------------------
+const generator::var_ptr &build_t::get_var(const std::string &variable_name) const {
+    for (auto scope_it = scope.rbegin(); scope_it != scope.rend(); ++scope_it) {
+        auto it = scope_it->find(variable_name);
+        if (it != scope_it->end())
+            return it->second;
+    }
+
+    throw std::logic_error("Variable not declared in this scope: " + variable_name);
 }
 
 } // namespace bf

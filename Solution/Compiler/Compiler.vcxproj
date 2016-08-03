@@ -140,7 +140,7 @@
     <ClCompile Include="..\..\bf\instruction_visitor.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\bf\ast.h" />
+    <ClInclude Include="..\..\bf\ast_types.h" />
     <ClInclude Include="..\..\bf\compiler.h" />
     <ClInclude Include="..\..\bf\expression_visitor.h" />
     <ClInclude Include="..\..\bf\generator.h" />

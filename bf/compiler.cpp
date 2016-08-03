@@ -194,6 +194,7 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         parenthesized      = '(' > expression > ')';
 
         // Instructions
+        // Parentheses used here to prevent bug: http://stackoverflow.com/q/19823413
         instruction = ( // Semicolon terminated instructions
                         ( function_call_instr
                         | variable_declaration

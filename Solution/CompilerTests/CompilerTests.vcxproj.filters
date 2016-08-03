@@ -27,13 +27,13 @@
     <ClInclude Include="..\..\bf\compiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\bf\ast.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\bf\expression_visitor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\bf\instruction_visitor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\bf\ast_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

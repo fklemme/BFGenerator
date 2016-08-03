@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ast.h"
+#include "ast_types.h"
 #include "generator.h"
 
 #include <map>

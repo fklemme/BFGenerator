@@ -4,8 +4,8 @@
 
 namespace bf {
 
-instruction_visitor::instruction_visitor(build_t &build, const generator::var_ptr &function_return_value)
-    : m_build(build), m_return_value(function_return_value) {}
+instruction_visitor::instruction_visitor(build_t &build, const generator::var_ptr &return_value)
+    : m_build(build), m_return_value(return_value) {}
 
 // ----- Function call ---------------------------------------------------------
 void instruction_visitor::operator()(const instruction::function_call_t &i) {

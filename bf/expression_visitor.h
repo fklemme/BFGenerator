@@ -10,7 +10,8 @@ namespace bf {
 
 class expression_visitor : public boost::static_visitor<void> {
 public:
-    expression_visitor(build_t&, const generator::var_ptr& target_variable);
+    // The result of the evaluted expression will be assigned to 'target_variable'.
+    expression_visitor(build_t&, const generator::var_ptr &target_variable);
     
     void operator()(const expression::binary_operation_t<expression::operator_t::or_>&);
     void operator()(const expression::binary_operation_t<expression::operator_t::and_>&);

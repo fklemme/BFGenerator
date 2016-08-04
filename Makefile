@@ -3,9 +3,9 @@ BFC_LIBS := -lboost_program_options
 TESTLIBS := -lboost_unit_test_framework
 
 COMP_OBJ := bf/compiler.o \
+            bf/expression_visitor.o \
             bf/generator.o \
-            bf/instruction_visitor.o \
-            bf/expression_visitor.o
+            bf/instruction_visitor.o
 GEN_OBJ  := bf/generator.o
 
 # Build compiler

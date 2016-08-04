@@ -5,6 +5,7 @@
 #endif
 
 #include "compiler.h"
+#include "error_handler.h"
 #include "generator.h"
 #include "instruction_visitor.h"
 
@@ -273,25 +274,10 @@ struct grammar : qi::grammar<iterator, program_t(), skipper<iterator>> {
         instruction_block.name("instruction block");       // debug(instruction_block);
 
         // Print error message on parse failure.
-        auto on_error = [](auto first, auto last, auto err, auto what) {
-            std::string before(first, err);
-            std::size_t bpos = before.find_last_of('\n');
-            if (bpos != std::string::npos)
-                before = before.substr(bpos + 1);
-
-            std::string after(err, last);
-            std::size_t apos = after.find_first_of('\n');
-            if (apos != std::string::npos)
-                after = after.substr(0, apos);
-
-            std::cerr << "Error! Expecting " << what << " here:\n"
-                << before << after << '\n'
-                << std::string(before.size(), ' ') << '^'
-                << std::endl;
-        };
-
         qi::on_error<qi::fail>(program, boost::phoenix::bind(on_error, qi::_1, qi::_2, qi::_3, qi::_4));
     }
+
+    error_handler<iterator> on_error;
 
     qi::rule<iterator, program_t(),   skipper<iterator>> program;
     qi::rule<iterator, function_t(),  skipper<iterator>> function;

@@ -142,6 +142,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\bf\ast_types.h" />
     <ClInclude Include="..\..\bf\compiler.h" />
+    <ClInclude Include="..\..\bf\error_handler.h" />
     <ClInclude Include="..\..\bf\expression_visitor.h" />
     <ClInclude Include="..\..\bf\generator.h" />
     <ClInclude Include="..\..\bf\instruction_visitor.h" />

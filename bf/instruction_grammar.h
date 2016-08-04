@@ -21,12 +21,13 @@ struct instruction_g : qi::grammar<iterator, program_t(), skipper_g<iterator>> {
     instruction_g() : instruction_g::base_type(program) {
         #define KEYWORD boost::spirit::repository::distinct(qi::alnum | '_')
         #define KEYWORDS KEYWORD[qi::lit("function") | "var" | "print" | "scan" | "if" | "else" | "while" | "for"]
-        program  = *function > qi::eoi;
+        function_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
+        variable_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
+
+        program = *function > qi::eoi;
         function = KEYWORD["function"] > function_name
                  > '(' > -(variable_name % ',') > ')'
                  > '{' > *instruction > '}';
-        function_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
-        variable_name = qi::lexeme[((qi::alpha | '_') >> *(qi::alnum | '_')) - KEYWORDS];
 
         // Instructions
         // Parentheses used here to prevent bug: http://stackoverflow.com/q/19823413
@@ -60,10 +61,10 @@ struct instruction_g : qi::grammar<iterator, program_t(), skipper_g<iterator>> {
         for_post_loop        = variable_assignment.alias();
         instruction_block    = '{' > *instruction > '}';
 
-        program.name("program");                           // debug(program);
-        function.name("function");                         // debug(function);
         function_name.name("function name");               // debug(function_name);
         variable_name.name("variable name");               // debug(variable_name);
+        program.name("program");                           // debug(program);
+        function.name("function");                         // debug(function);
 
         instruction.name("instruction");                   // debug(instruction);
         function_call_instr.name("function call instr");   // debug(function_call_instr);
@@ -88,10 +89,10 @@ struct instruction_g : qi::grammar<iterator, program_t(), skipper_g<iterator>> {
     expression_g<iterator>  expression;
     error_handler<iterator> on_error;
 
-    qi::rule<iterator, program_t(),   skipper_g<iterator>> program;
-    qi::rule<iterator, function_t(),  skipper_g<iterator>> function;
     qi::rule<iterator, std::string(), skipper_g<iterator>> function_name;
     qi::rule<iterator, std::string(), skipper_g<iterator>> variable_name;
+    qi::rule<iterator, program_t(),   skipper_g<iterator>> program;
+    qi::rule<iterator, function_t(),  skipper_g<iterator>> function;
 
     qi::rule<iterator, instruction::instruction_t(),          skipper_g<iterator>> instruction;
     qi::rule<iterator, instruction::function_call_t(),        skipper_g<iterator>> function_call_instr;

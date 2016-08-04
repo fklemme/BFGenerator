@@ -195,13 +195,11 @@ struct expression_g : qi::grammar<iterator, expression::expression_t(), skipper_
         parenthesized.name("parenthesized expression");    // debug(parenthesized);
 
         // Print error message on parse failure.
-        qi::on_error<qi::fail>(program, boost::phoenix::bind(on_error, qi::_1, qi::_2, qi::_3, qi::_4));
+        qi::on_error<qi::fail>(expression, boost::phoenix::bind(on_error, qi::_1, qi::_2, qi::_3, qi::_4));
     }
 
     error_handler<iterator> on_error;
 
-    qi::rule<iterator, program_t(),   skipper_g<iterator>> program;
-    qi::rule<iterator, function_t(),  skipper_g<iterator>> function;
     qi::rule<iterator, std::string(), skipper_g<iterator>> function_name;
     qi::rule<iterator, std::string(), skipper_g<iterator>> variable_name;
 

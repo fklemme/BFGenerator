@@ -34,11 +34,9 @@ program_t parse(const std::string &source) {
     std::sort(program.begin(), program.end(),
         [](const function_t &f1, const function_t &f2) {return f1.name < f2.name;});
     // Ensure unique function names.
-    if (program.size() > 1) {
-        auto before_it = program.begin();
-        for (auto it = before_it + 1; it != program.end(); ++before_it, ++it)
-            if (before_it->name == it->name)
-                throw std::logic_error("Function name used multiply times: " + it->name);
+    for (std::size_t i = 1; i < program.size(); ++i) {
+        if (program[i - 1].name == program[i].name)
+            throw std::logic_error("Function name used multiply times: " + program[i].name);
     }
 
     return program;

@@ -12,6 +12,7 @@ expression_visitor::expression_visitor(compiler::build_t &build, const generator
     
 // ----- Binary or -------------------------------------------------------------
 void expression_visitor::operator()(const expression::binary_operation_t<expression::operator_t::or_> &e) {
+    // TODO: Check lhs as well? Better optimization for this?
     if (const expression::value_t *v = boost::get<expression::value_t>(&e.rhs)) {
         if (v->value)
             m_var_stack.back()->set(1);

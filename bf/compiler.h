@@ -1,3 +1,6 @@
+/* Compiles C-like source code to executable Brainfuck code.
+ */
+
 #pragma once
 
 #include "ast_types.h"

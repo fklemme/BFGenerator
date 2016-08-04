@@ -1,9 +1,10 @@
+/* SCOPE_EXIT (template from Andrei Alexandrescu)
+ * See talk: https://www.youtube.com/watch?v=WjTrfoiB0MQ
+ */
+
 #pragma once
 
 #include <utility>
-
-// ----- SCOPE_EXIT (template from Andrei Alexandrescu) ------------------------
-// See talk: https://www.youtube.com/watch?v=WjTrfoiB0MQ
 
 #define CONCATENATE_IMPL(s1, s2) s1##s2
 #define CONCATENATE(s1, s2) CONCATENATE_IMPL(s1, s2)

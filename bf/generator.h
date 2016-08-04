@@ -1,3 +1,9 @@
+/* "generator" provides an interface to generate Brainfuck code with C++
+ * instructions. This interface can be used on its own, but it is mainly used
+ * by "compiler" to ease up code generation and give another layer of
+ * abstraction.
+ */
+
 #pragma once
 
 #include <array>

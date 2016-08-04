@@ -143,10 +143,13 @@
     <ClInclude Include="..\..\bf\ast_types.h" />
     <ClInclude Include="..\..\bf\compiler.h" />
     <ClInclude Include="..\..\bf\error_handler.h" />
+    <ClInclude Include="..\..\bf\expression_grammar.h" />
     <ClInclude Include="..\..\bf\expression_visitor.h" />
     <ClInclude Include="..\..\bf\generator.h" />
+    <ClInclude Include="..\..\bf\instruction_grammar.h" />
     <ClInclude Include="..\..\bf\instruction_visitor.h" />
     <ClInclude Include="..\..\bf\scope_exit.h" />
+    <ClInclude Include="..\..\bf\skipper_grammar.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -6,7 +6,7 @@
 
 namespace bf {
 
-expression_visitor::expression_visitor(build_t &build, const generator::var_ptr &target_variable) : m_build(build) {
+expression_visitor::expression_visitor(compiler::build_t &build, const generator::var_ptr &target_variable) : m_build(build) {
     m_var_stack.push_back(target_variable);
 }
     
@@ -192,7 +192,7 @@ void expression_visitor::operator()(const expression::function_call_t &e) {
     SCOPE_EXIT {m_build.call_stack.pop_back();};
 
     // Provide a clean scope for the called function.
-    build_t::scope_tree_t scope;
+    compiler::scope_tree_t scope;
     scope.emplace_back();
 
     // Evaluate function arguments.

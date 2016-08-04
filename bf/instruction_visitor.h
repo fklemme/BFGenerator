@@ -11,7 +11,7 @@ namespace bf {
 class instruction_visitor : public boost::static_visitor<void> {
 public:
     // Return statements will assign their results to 'return_value'.
-    instruction_visitor(build_t&, const generator::var_ptr &return_value);
+    instruction_visitor(compiler::build_t&, const generator::var_ptr &return_value);
 
     void operator()(const instruction::function_call_t&);
     void operator()(const instruction::variable_declaration_t&);
@@ -26,7 +26,7 @@ public:
     void operator()(const instruction::instruction_block_t&);
 
 private:
-    build_t            &m_build;
+    compiler::build_t  &m_build;
     generator::var_ptr m_return_value;
 };
 

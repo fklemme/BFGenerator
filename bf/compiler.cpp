@@ -70,7 +70,7 @@ std::string compiler::generate(const program_t &program) const {
 }
 
 // ----- Helper function -------------------------------------------------------
-const generator::var_ptr &build_t::get_var(const std::string &variable_name) const {
+const generator::var_ptr &compiler::build_t::get_var(const std::string &variable_name) const {
     for (auto scope_it = scope.rbegin(); scope_it != scope.rend(); ++scope_it) {
         auto it = scope_it->find(variable_name);
         if (it != scope_it->end())

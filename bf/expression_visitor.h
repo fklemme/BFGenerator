@@ -11,7 +11,7 @@ namespace bf {
 class expression_visitor : public boost::static_visitor<void> {
 public:
     // The result of the evaluted expression will be assigned to 'target_variable'.
-    expression_visitor(build_t&, const generator::var_ptr &target_variable);
+    expression_visitor(compiler::build_t&, const generator::var_ptr &target_variable);
     
     void operator()(const expression::binary_operation_t<expression::operator_t::or_>&);
     void operator()(const expression::binary_operation_t<expression::operator_t::and_>&);
@@ -31,7 +31,7 @@ public:
     void operator()(const expression::parenthesized_expression_t&);
 
 private:
-    build_t                         &m_build;
+    compiler::build_t               &m_build;
     std::vector<generator::var_ptr> m_var_stack;
 };
 

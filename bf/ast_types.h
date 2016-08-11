@@ -154,7 +154,7 @@ struct function_t {
     std::vector<instruction::instruction_t> instructions;
 };
 
-typedef std::vector<function_t> program_t;
+using program_t = std::vector<function_t>;
 
 } // namespace bf
 

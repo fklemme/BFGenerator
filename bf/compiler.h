@@ -14,7 +14,7 @@ namespace bf {
 
 class compiler {
 public:
-    typedef std::vector<std::map<std::string, generator::var_ptr>> scope_tree_t;
+    using scope_tree_t = std::vector<std::map<std::string, generator::var_ptr>>;
 
     // Holds all build information while compiling.
     struct build_t {

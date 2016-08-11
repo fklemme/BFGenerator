@@ -24,7 +24,7 @@ class generator {
     friend class var;
 
 public:
-    typedef std::shared_ptr<var> var_ptr;
+    using var_ptr = std::shared_ptr<var>;
 
     generator() = default;
 
@@ -67,7 +67,7 @@ private:
     std::string move_sp_to(const var&);
 
     // Output format: sp moves, operations, comment, indentation
-    typedef std::tuple<std::string, std::string, std::string, unsigned> output_t;
+    using output_t = std::tuple<std::string, std::string, std::string, unsigned>;
     std::vector<output_t> m_out;
     unsigned              m_indention = 0;
     unsigned              m_debug_nr  = 0;

@@ -92,7 +92,7 @@ struct expression_g : qi::grammar<iterator, expression::expression_t(), skipper_
     }
 
     // On binary operation: Check if rotation of nodes is necessary and assign result.
-    typedef qi::rule<iterator, expression::expression_t(), skipper_g<iterator>> expression_rule_t;
+    using expression_rule_t = qi::rule<iterator, expression::expression_t(), skipper_g<iterator>>;
     static void check_rotate(expression::expression_t attr, typename expression_rule_t::context_type &context) {
         const auto &attr_rhs = boost::apply_visitor(child_visitor(side_t::right), attr);
         const int attr_precedence = boost::apply_visitor(precedence_visitor(), attr);

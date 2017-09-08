@@ -1,4 +1,4 @@
-CXXFLAGS += -std=c++14 -O2 -Wall
+CXXFLAGS += -std=c++14 -Wall -g -O0 --coverage
 BFC_LIBS := -lboost_program_options
 TESTLIBS := -lboost_unit_test_framework
 
@@ -37,3 +37,5 @@ bin/test_compiler: test/compiler_tests.o $(COMP_OBJ)
 
 clean:
 	rm -f *.o bf/*.o test/*.o
+	rm -f bf/*.gcno test/*.gcno
+	rm -f bf/*.gcda test/*.gcda

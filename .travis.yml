@@ -20,6 +20,8 @@ before_install:
     - sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++   20
     - sudo update-alternatives --set cc  /usr/bin/gcc
     - sudo update-alternatives --set c++ /usr/bin/g++
+    # Install coveralls tool
+    - pip install --user cpp-coveralls
 
 install:
     # Install Boost 1.62
@@ -35,3 +37,6 @@ install:
 script:
     - make && ./bin/bfc --version
     - make test
+
+after_success:
+    - coveralls --exclude test

@@ -1,6 +1,8 @@
 # Make generated files
 bin/
 *.o
+*.gcno
+*.gcda
 
 # Temp files
 .*.swp

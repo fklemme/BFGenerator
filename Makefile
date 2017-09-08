@@ -1,4 +1,9 @@
-CXXFLAGS += -std=c++14 -Wall -g -O0 --coverage
+ifdef COVERALLS_REPO_TOKEN
+CXXFLAGS += -std=c++14 -Wall -O0 -g --coverage
+else
+CXXFLAGS += -std=c++14 -Wall -O2
+endif
+
 BFC_LIBS := -lboost_program_options
 TESTLIBS := -lboost_unit_test_framework
 

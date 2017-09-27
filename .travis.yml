@@ -24,11 +24,11 @@ before_install:
     - pip install --user cpp-coveralls
 
 install:
-    # Install Boost 1.62
+    # Install recent version of Boost
     - cd ..
-    - wget https://sourceforge.net/projects/boost/files/boost/1.62.0/boost_1_62_0.tar.bz2
-    - tar --bzip2 -xf boost_1_62_0.tar.bz2
-    - cd boost_1_62_0
+    - wget https://dl.bintray.com/boostorg/release/1.65.1/source/boost_1_65_1.tar.bz2
+    - tar --bzip2 -xf boost_1_65_1.tar.bz2
+    - cd boost_1_65_1
     - ./bootstrap.sh --with-libraries=program_options,test
     - sudo ./b2 -d0 install
     - sudo ldconfig

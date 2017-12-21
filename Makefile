@@ -13,6 +13,8 @@ COMP_OBJ := bf/compiler.o \
             bf/instruction_visitor.o
 GEN_OBJ  := bf/generator.o
 
+BFC_PREFIX ?= ~/.local/bin
+
 # Build compiler
 bin/bfc: bf/frontend.o $(COMP_OBJ)
 	@test -d bin || mkdir -p bin
@@ -39,6 +41,11 @@ bin/test_generator: test/generator_tests.o $(GEN_OBJ)
 bin/test_compiler: test/compiler_tests.o $(COMP_OBJ)
 	@test -d bin || mkdir -p bin
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(TESTLIBS)
+
+.PHONY: install
+install: bin/bfc
+	@test -d $(BFC_PREFIX) || mkdir -p $(BFC_PREFIX)
+	cp bin/bfc $(BFC_PREFIX)
 
 clean:
 	rm -f *.o bf/*.o test/*.o

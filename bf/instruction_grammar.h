@@ -53,7 +53,7 @@ struct instruction_g : qi::grammar<iterator, program_t(), skipper_g<iterator>> {
         print_text           = KEYWORD["print"] >> qi::lexeme['"' > *(qi::char_ - '"') > '"'];
         scan_variable        = KEYWORD["scan"] > variable_name;
         return_statement     = KEYWORD["return"] > expression;
-        if_else              = KEYWORD["if"] > '(' > expression > ')' > instruction > -(qi::lexeme["else"] > instruction);
+        if_else              = KEYWORD["if"] > '(' > expression > ')' > instruction > -(KEYWORD["else"] > instruction);
         while_loop           = KEYWORD["while"] > '(' > expression > ')' > instruction;
         for_loop             = KEYWORD["for"] > '(' > -for_initialization > ';' > for_expression > ';' > -for_post_loop > ')' > instruction;
         for_initialization   = variable_declaration | variable_assignment;
@@ -101,7 +101,7 @@ struct instruction_g : qi::grammar<iterator, program_t(), skipper_g<iterator>> {
     qi::rule<iterator, instruction::print_expression_t(),     skipper_g<iterator>> print_expression;
     qi::rule<iterator, instruction::print_text_t(),           skipper_g<iterator>> print_text;
     qi::rule<iterator, instruction::scan_variable_t(),        skipper_g<iterator>> scan_variable;
-    qi::rule<iterator, instruction::return_statement_t,       skipper_g<iterator>> return_statement;
+    qi::rule<iterator, instruction::return_statement_t(),     skipper_g<iterator>> return_statement;
     qi::rule<iterator, instruction::if_else_t(),              skipper_g<iterator>> if_else;
     qi::rule<iterator, instruction::while_loop_t(),           skipper_g<iterator>> while_loop;
     qi::rule<iterator, instruction::for_loop_t(),             skipper_g<iterator>> for_loop;

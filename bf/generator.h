@@ -66,7 +66,7 @@ private:
     // Helper function
     std::string move_sp_to(const var&);
 
-    // Output format: sp moves, operations, comment, indentation
+    // Output format: sp moves, operations, comment, indention
     using output_t = std::tuple<std::string, std::string, std::string, unsigned>;
     std::vector<output_t> m_out;
     unsigned              m_indention = 0;

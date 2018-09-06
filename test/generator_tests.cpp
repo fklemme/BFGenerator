@@ -156,7 +156,7 @@ BOOST_AUTO_TEST_CASE(var__add_self) {
         program = bfg.get_code();
     }
 
-    bfg_check(program, "3 + 3 == 5", {3}, {6});
+    bfg_check(program, "3 + 3 == 6", {3}, {6});
     bfg_check(program, "5 + 5 == 10", {5}, {10});
 }
 
@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE(var__subtract_self) {
         program = bfg.get_code();
     }
 
-    bfg_check(program, "5 - 5 == 0", {3}, {0});
+    bfg_check(program, "3 - 3 == 0", {3}, {0});
     bfg_check(program, "10 - 10 == 0", {10}, {0});
 }
 

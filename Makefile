@@ -1,4 +1,4 @@
-ifdef COVERALLS_REPO_TOKEN
+ifdef CI
 CXXFLAGS += -std=c++14 -Wall -O0 -g --coverage
 else
 CXXFLAGS += -std=c++14 -Wall -O2

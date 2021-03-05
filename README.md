@@ -1,5 +1,7 @@
 # Brainfuck Code Generator
-[![Build Status](https://travis-ci.org/fklemme/BFGenerator.svg?branch=master)](https://travis-ci.org/fklemme/BFGenerator)
-[![Coverage Status](https://coveralls.io/repos/github/fklemme/BFGenerator/badge.svg?branch=master)](https://coveralls.io/github/fklemme/BFGenerator)
 
-Still under construction. Come back later. ;-)
+
+[![pipeline status](https://gitlab.kruecke.net/fklemme/BFGenerator/badges/master/pipeline.svg)](https://gitlab.kruecke.net/fklemme/BFGenerator/-/commits/master)
+[![coverage report](https://gitlab.kruecke.net/fklemme/BFGenerator/badges/master/coverage.svg)](https://gitlab.kruecke.net/fklemme/BFGenerator/-/commits/master)
+
+Generate Brainfuck code from pseudo-C code.

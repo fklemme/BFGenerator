@@ -14,7 +14,7 @@ test:
   before_script:
     - apt-get update
     - apt-get install -y make g++ gcovr
-    - apt-get install -y libboost-test-dev
+    - apt-get install -y libboost-dev libboost-test-dev
   script:
     - make test
     - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml --root ${CI_PROJECT_DIR}

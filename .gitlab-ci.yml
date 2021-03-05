@@ -20,6 +20,7 @@ test:
   script:
     - make test
     - gcovr --xml-pretty --exclude-unreachable-branches --print-summary -o coverage.xml --root ${CI_PROJECT_DIR}
+  coverage: /^\s*lines:\s*\d+.\d+\%/
   artifacts:
     reports:
       cobertura: coverage.xml

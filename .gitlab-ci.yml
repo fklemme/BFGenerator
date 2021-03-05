@@ -1,0 +1,7 @@
+image: ubuntu:20.04
+
+build:
+  stage: build
+  script:
+    - make && ./bin/bfc --version
+    - make test

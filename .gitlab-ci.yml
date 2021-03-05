@@ -2,6 +2,9 @@ image: ubuntu:20.04
 
 build:
   stage: build
+  before_script:
+    - apt-get update
+    - apt-get install -y make g++
   script:
     - make && ./bin/bfc --version
     - make test
